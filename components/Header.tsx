@@ -311,11 +311,10 @@ const styles = StyleSheet.create({
     borderLeftWidth: 1,
     borderLeftColor: 'rgba(255,255,255,0.1)',
     zIndex: 9999,
-    paddingTop: 100,
     paddingHorizontal: 30,
     alignItems: 'center',
-    justifyContent: 'flex-start',
-    gap: 40,
+    justifyContent: 'center', // Centered vertically in the middle of the screen!
+    gap: 32,
     // Soft shadow boundary on the left edge
     shadowColor: '#000',
     shadowOffset: { width: -8, height: 0 },
@@ -338,9 +337,16 @@ const styles = StyleSheet.create({
     width: 150,
   },
   menuLinks: {
-    gap: 30,
+    gap: 28,
     alignItems: 'center',
-    marginTop: 40,
+    width: '100%',
+    maxWidth: 320,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)', // Elegant subtle background card
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingVertical: 32,
+    paddingHorizontal: 20,
   },
   menuLinkText: {
     color: '#fff',
@@ -350,11 +356,12 @@ const styles = StyleSheet.create({
   },
   menuCtaButton: {
     backgroundColor: '#0056DB',
-    width: '80%',
+    width: '100%',
+    maxWidth: 320, // Match the menuLinks card width
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
-    marginTop: 40,
+    marginTop: 8,
   },
   menuCtaText: {
     color: '#fff',
