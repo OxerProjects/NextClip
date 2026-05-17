@@ -18,12 +18,25 @@ export function Header() {
   const animValue = useRef(new Animated.Value(0)).current;
   const menuAnim = useRef(new Animated.Value(0)).current;
 
+  // Sync header state on page transitions (pathname changes)
   useEffect(() => {
     if (!isHome) {
       setShowCta(true);
       setIsScrolled(true);
-      return;
+    } else {
+      // We are on home, check current scroll position to initialize states
+      const y = Platform.OS === 'web' ? window.scrollY : 0;
+      setShowCta(y > 400);
+      setIsScrolled(y > 20);
     }
+    // Make sure mobile menu closes on page transition
+    setIsMenuOpen(false);
+    menuAnim.setValue(0);
+  }, [pathname, isHome]);
+
+  // Scroll listeners only active on Home page
+  useEffect(() => {
+    if (!isHome) return;
 
     const handleScroll = (scrollY: number) => {
       setShowCta(scrollY > 400);
@@ -36,7 +49,8 @@ export function Header() {
     if (Platform.OS === 'web') {
       webHandler = () => handleScroll(window.scrollY);
       window.addEventListener('scroll', webHandler);
-      webHandler();
+      // Run once to match current scroll
+      handleScroll(window.scrollY);
     }
 
     return () => {
@@ -45,7 +59,7 @@ export function Header() {
         window.removeEventListener('scroll', webHandler);
       }
     };
-  }, []);
+  }, [isHome]);
 
   // Animate when showCta changes
   useEffect(() => {
