@@ -117,9 +117,13 @@ export function Header() {
         style={[
           styles.container,
           {
-            backgroundColor: isScrolled ? Colors.dark.background : 'transparent',
-            borderBottomColor: isScrolled ? 'rgba(255,255,255,0.05)' : 'transparent',
-          }
+            backgroundColor: isScrolled ? 'rgba(15, 23, 42, 0.65)' : 'transparent',
+            borderBottomColor: isScrolled ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+            // @ts-ignore
+            backdropFilter: isScrolled ? 'blur(20px)' : 'none',
+            // @ts-ignore
+            WebkitBackdropFilter: isScrolled ? 'blur(20px)' : 'none',
+          } as any
         ]}
       >
         <View style={StyleSheet.flatten(isMobile ? styles.mobileContent : styles.content)}>
