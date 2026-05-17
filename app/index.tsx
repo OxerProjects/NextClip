@@ -1,8 +1,7 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { View, StyleSheet, Dimensions, Platform, DeviceEventEmitter, Image } from 'react-native';
 import Animated, { useSharedValue, useAnimatedScrollHandler, runOnJS } from 'react-native-reanimated';
 import { HeroSection } from '@/components/home/HeroSection';
-import { Header } from '@/components/Header';
 import { Colors } from '@/constants/theme';
 import { TestimonialsSection } from '@/components/home/TestimonialsSection';
 import { GalleryMarquee } from '@/components/home/GalleryMarquee';
@@ -25,7 +24,6 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <Header />
 
       <Animated.ScrollView
         style={styles.container}

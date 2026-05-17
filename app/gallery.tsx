@@ -1,4 +1,3 @@
-import { Header } from '@/components/Header';
 import { Colors } from '@/constants/theme';
 import { GalleryImage, getGalleryImages, GRID_TOTAL_WIDTH } from '@/utils/storage';
 import { FontAwesome } from '@expo/vector-icons';
@@ -489,9 +488,6 @@ export default function GalleryPage() {
         style={styles.topGradient}
         pointerEvents="none"
       />
-
-      {/* Header */}
-      <Header />
 
       {/* Title (right) + Filters (left) */}
       <View style={styles.topOverlay} pointerEvents="box-none">

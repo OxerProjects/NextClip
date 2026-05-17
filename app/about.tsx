@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, useWindowDimensions, Platform } from 'react-native';
 import { Colors } from '@/constants/theme';
-import { Header } from '@/components/Header';
 import { ContactSection } from '@/components/home/ContactSection';
 import { Footer } from '@/components/Footer';
 
@@ -11,8 +10,6 @@ export default function AboutScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Premium Navigation Header */}
-      <Header />
 
       <ScrollView 
         style={styles.scrollView} 
