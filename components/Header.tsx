@@ -9,7 +9,7 @@ export function Header() {
   const isHome = pathname === '/';
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
-  
+
   const [showCta, setShowCta] = useState(!isHome);
   const [isScrolled, setIsScrolled] = useState(!isHome);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -152,8 +152,8 @@ export function Header() {
                 <Link href="/gallery" asChild>
                   <Pressable><Text style={styles.navText}>גלריה</Text></Pressable>
                 </Link>
-                <Link href="/contact" asChild>
-                  <Pressable><Text style={styles.navText}>צור קשר</Text></Pressable>
+                <Link href="/about" asChild>
+                  <Pressable><Text style={styles.navText}>קצת עלינו</Text></Pressable>
                 </Link>
               </Animated.View>
 
@@ -208,9 +208,9 @@ export function Header() {
                 <Text style={styles.menuLinkText}>גלריה</Text>
               </Pressable>
             </Link>
-            <Link href="/contact" asChild>
+            <Link href="/about" asChild>
               <Pressable onPress={() => toggleMenu(false)}>
-                <Text style={styles.menuLinkText}>צור קשר</Text>
+                <Text style={styles.menuLinkText}>קצת עלינו</Text>
               </Pressable>
             </Link>
           </View>
