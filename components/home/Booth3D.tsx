@@ -131,16 +131,20 @@ export function Booth3DInline({ scrollY }: { scrollY?: SharedValue<number> }) {
         const mv = modelRef.current;
         if (!mv) return;
 
+        // Check if we are on mobile (screen width < 768)
+        const isMobile = window.innerWidth < 768;
+
         // טווחי הגלילה לשני השלבים:
         // שלב 1: 0 עד 1800 פיקסלים (זום אוט מלא לראות את כל העמדה)
-        // שלב 2: 1800 עד 3500 פיקסלים (זום אין מותאם אישית שאתה קבעת למעלה)
+        // שלב 2: 1800 עד 3500 פיקסלים (זום אין מותאם אישית שאתה קבעת למעלה - מופעל רק במובייל!)
         const STAGE1_END = 1800;
         const STAGE2_END = 3500;
 
         let theta, phi, radius, targetY, fov;
 
-        if (y <= STAGE1_END) {
+        if (y <= STAGE1_END || !isMobile) {
           // שלב 1: אינטרפולציה מההתחלה לסוף שלב 1 (זום אוט)
+          // במחשב (!isMobile), המודל נשאר נעול בסוף שלב 1 (זום אוט מלא) גם בגלילה עמוקה יותר!
           const progress = Math.min(Math.max(y / STAGE1_END, 0), 1);
           fov = START_FOV + progress * (END_FOV - START_FOV);
           targetY = START_TARGET_Y + progress * (END_TARGET_Y - START_TARGET_Y);
@@ -148,7 +152,7 @@ export function Booth3DInline({ scrollY }: { scrollY?: SharedValue<number> }) {
           theta = START_THETA + progress * (END_THETA - START_THETA);
           phi = START_PHI + progress * (END_PHI - START_PHI);
         } else {
-          // שלב 2: אינטרפולציה מסוף שלב 1 לשלב 2 המותאם אישית (זום אין למיקום החדש שלך!)
+          // שלב 2 (רק במובייל!): אינטרפולציה מסוף שלב 1 לשלב 2 המותאם אישית (זום אין למיקום החדש שלך!)
           const progress = Math.min(Math.max((y - STAGE1_END) / (STAGE2_END - STAGE1_END), 0), 1);
           fov = END_FOV + progress * (STAGE2_FOV - END_FOV);
           targetY = END_TARGET_Y + progress * (STAGE2_TARGET_Y - END_TARGET_Y);

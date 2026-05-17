@@ -372,13 +372,13 @@ const styles = StyleSheet.create({
   },
   featuresHeader: {
     marginBottom: 20,
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
     width: 350,
   },
   featuresHeaderText: {
     fontSize: 34,
     fontWeight: '900',
-    color: '#38bdf8', // Glowing brand light blue highlight
+    color: '#ffffff', // Glowing brand light blue highlight
     fontFamily: 'Google Sans, sans-serif',
     textAlign: 'right',
   },
