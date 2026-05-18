@@ -111,11 +111,11 @@ export function ServicesSection() {
               onHoverOut={() => !isMobile && setHoveredCard(null)}
               style={[
                 styles.card,
-                item.isProminent && styles.prominentCard,
-                isMobile && styles.mobileCard,
-                isHovered && styles.cardHovered,
-                item.isProminent && isHovered && styles.prominentCardHovered,
-              ]}
+                item.isProminent ? styles.prominentCard : null,
+                isMobile ? styles.mobileCard : null,
+                isHovered ? styles.cardHovered : null,
+                (item.isProminent && isHovered) ? styles.prominentCardHovered : null,
+              ].filter(Boolean) as any}
               {...(Platform.OS === 'web' ? { className: cardClasses } : {})}
             >
               {item.isProminent && Platform.OS === 'web' && (
@@ -155,10 +155,10 @@ export function ServicesSection() {
                     style={[
                       styles.ctaButton,
                       item.isProminent ? styles.prominentCtaButton : styles.outlineCtaButton,
-                      isBtnHovered && styles.ctaButtonHovered,
-                      item.isProminent && isBtnHovered && styles.prominentCtaButtonHovered,
-                      !item.isProminent && isBtnHovered && styles.outlineCtaButtonHovered,
-                    ]}
+                      isBtnHovered ? styles.ctaButtonHovered : null,
+                      (item.isProminent && isBtnHovered) ? styles.prominentCtaButtonHovered : null,
+                      (!item.isProminent && isBtnHovered) ? styles.outlineCtaButtonHovered : null,
+                    ].filter(Boolean) as any}
                     {...(Platform.OS === 'web' ? { className: btnClasses } : {})}
                   >
                     <Text style={[
