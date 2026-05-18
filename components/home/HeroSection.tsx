@@ -1,9 +1,9 @@
 import { Colors } from '@/constants/theme';
 import { Feather } from '@expo/vector-icons';
 import { Link } from 'expo-router';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Image, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Animated, { Extrapolate, interpolate, SharedValue, useAnimatedStyle } from 'react-native-reanimated';
+import Animated, { Extrapolate, interpolate, SharedValue, useAnimatedStyle, useSharedValue, withRepeat, withTiming, withSequence } from 'react-native-reanimated';
 import { Booth3DInline } from './Booth3D';
 
 const FEATURES = [
@@ -74,6 +74,19 @@ export function HeroSection({ scrollY }: { scrollY?: SharedValue<number> }) {
   const { width, height: screenHeight } = useWindowDimensions();
   const isMobile = width < 768;
 
+  const bobAnim = useSharedValue(0);
+
+  useEffect(() => {
+    bobAnim.value = withRepeat(
+      withSequence(
+        withTiming(-8, { duration: 1000 }),
+        withTiming(8, { duration: 1000 })
+      ),
+      -1,
+      true
+    );
+  }, []);
+
   const textStyle = useAnimatedStyle(() => {
     const y = scrollY?.value || 0;
     const opacity = interpolate(y, [0, 500], [1, 0], Extrapolate.CLAMP);
@@ -83,8 +96,12 @@ export function HeroSection({ scrollY }: { scrollY?: SharedValue<number> }) {
 
   const arrowStyle = useAnimatedStyle(() => {
     const y = scrollY?.value || 0;
-    const opacity = interpolate(y, [0, 100], [1, 0], Extrapolate.CLAMP);
-    return { opacity };
+    // Arrow remains visible all along the first section scrolling model sequence, fading out at the end
+    const opacity = interpolate(y, [3600, 4000], [1, 0], Extrapolate.CLAMP);
+    return {
+      opacity,
+      transform: [{ translateY: bobAnim.value }],
+    };
   });
 
   // 3D model scroll-driven transform style
