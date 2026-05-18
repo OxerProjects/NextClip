@@ -90,6 +90,25 @@ export function Header() {
     }
   };
 
+  // Inject frosted glass CSS style tag globally on Web
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      if (!document.getElementById('header-glass-style')) {
+        const style = document.createElement('style');
+        style.id = 'header-glass-style';
+        style.textContent = `
+          .header-glass-active {
+            background-color: rgba(15, 23, 42, 0.65) !important;
+            border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+          }
+        `;
+        document.head.appendChild(style);
+      }
+    }
+  }, []);
+
   const ctaFlex = animValue.interpolate({
     inputRange: [0, 1],
     outputRange: [0, 1],
@@ -119,12 +138,9 @@ export function Header() {
           {
             backgroundColor: isScrolled ? 'rgba(15, 23, 42, 0.65)' : 'transparent',
             borderBottomColor: isScrolled ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
-            // @ts-ignore
-            backdropFilter: isScrolled ? 'blur(20px)' : 'none',
-            // @ts-ignore
-            WebkitBackdropFilter: isScrolled ? 'blur(20px)' : 'none',
-          } as any
+          }
         ]}
+        {...(Platform.OS === 'web' && isScrolled ? { className: 'header-glass-active' } : {})}
       >
         <View style={StyleSheet.flatten(isMobile ? styles.mobileContent : styles.content)}>
           {isMobile ? (

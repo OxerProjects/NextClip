@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, useWindowDimensions, Platform, Pressable } from 'react-native';
 import { Colors } from '@/constants/theme';
 import { Link } from 'expo-router';
@@ -36,6 +36,50 @@ export function ServicesSection() {
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
   const [hoveredBtn, setHoveredBtn] = useState<number | null>(null);
 
+  // Safely inject web-specific, crash-free stylesheet to document head on Web platform
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      if (!document.getElementById('services-web-style')) {
+        const style = document.createElement('style');
+        style.id = 'services-web-style';
+        style.textContent = `
+          .service-card-web {
+            backdrop-filter: blur(16px) !important;
+            -webkit-backdrop-filter: blur(16px) !important;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease, box-shadow 0.4s ease !important;
+            cursor: pointer !important;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3) !important;
+          }
+          .service-card-web-prominent {
+            box-shadow: 0 20px 50px rgba(0, 86, 219, 0.12) !important;
+          }
+          .service-card-web-hovered {
+            transform: translateY(-12px) !important;
+            border-color: rgba(255, 255, 255, 0.2) !important;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5) !important;
+            background-color: rgba(255, 255, 255, 0.04) !important;
+          }
+          .service-card-web-prominent-hovered {
+            transform: translateY(-16px) scale(1.05) !important;
+            border-color: #0056DB !important;
+            box-shadow: 0 30px 60px rgba(0, 86, 219, 0.3) !important;
+            background-color: rgba(0, 86, 219, 0.05) !important;
+          }
+          .service-glow-overlay {
+            background-image: radial-gradient(circle at top, rgba(0, 86, 219, 0.15) 0%, transparent 60%) !important;
+          }
+          .service-btn-web {
+            transition: transform 0.25s ease, background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease !important;
+          }
+          .service-btn-web-prominent-hovered {
+            box-shadow: 0 8px 20px rgba(0, 86, 219, 0.4) !important;
+          }
+        `;
+        document.head.appendChild(style);
+      }
+    }
+  }, []);
+
   return (
     <View style={styles.container}>
       {/* Title */}
@@ -47,21 +91,18 @@ export function ServicesSection() {
           const isBtnHovered = hoveredBtn === index;
           const imageSrc = typeof item.image === 'number' ? item.image : { uri: item.image };
 
-          // Build dynamic inline Web-only styles to prevent StyleSheet.create style-parser compile crashes on Web
-          const webCardStyles = Platform.OS === 'web' ? {
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease, box-shadow 0.4s ease',
-            cursor: 'pointer',
-            boxShadow: isHovered
-              ? (item.isProminent ? '0 30px 60px rgba(0, 86, 219, 0.3)' : '0 25px 50px rgba(0, 0, 0, 0.5)')
-              : (item.isProminent ? '0 20px 50px rgba(0, 86, 219, 0.12)' : '0 8px 16px rgba(0, 0, 0, 0.3)'),
-          } : {};
+          // Build classes dynamic array
+          const cardClasses = [
+            'service-card-web',
+            item.isProminent && 'service-card-web-prominent',
+            isHovered && 'service-card-web-hovered',
+            item.isProminent && isHovered && 'service-card-web-prominent-hovered',
+          ].filter(Boolean).join(' ');
 
-          const webBtnStyles = Platform.OS === 'web' ? {
-            transition: 'transform 0.25s ease, background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease',
-            boxShadow: item.isProminent && isBtnHovered ? '0 8px 20px rgba(0, 86, 219, 0.4)' : 'none',
-          } : {};
+          const btnClasses = [
+            'service-btn-web',
+            item.isProminent && isBtnHovered && 'service-btn-web-prominent-hovered',
+          ].filter(Boolean).join(' ');
 
           return (
             <Pressable
@@ -74,19 +115,13 @@ export function ServicesSection() {
                 isMobile && styles.mobileCard,
                 isHovered && styles.cardHovered,
                 item.isProminent && isHovered && styles.prominentCardHovered,
-                webCardStyles as any,
               ]}
+              {...(Platform.OS === 'web' ? { className: cardClasses } : {})}
             >
               {item.isProminent && Platform.OS === 'web' && (
                 <View 
-                  style={[
-                    StyleSheet.absoluteFillObject,
-                    {
-                      borderRadius: 24,
-                      backgroundImage: 'radial-gradient(circle at top, rgba(0, 86, 219, 0.15) 0%, transparent 60%)',
-                      zIndex: 1,
-                    } as any
-                  ]}
+                  style={StyleSheet.absoluteFillObject}
+                  {...(Platform.OS === 'web' ? { className: 'service-glow-overlay' } : {})}
                   pointerEvents="none"
                 />
               )}
@@ -123,8 +158,8 @@ export function ServicesSection() {
                       isBtnHovered && styles.ctaButtonHovered,
                       item.isProminent && isBtnHovered && styles.prominentCtaButtonHovered,
                       !item.isProminent && isBtnHovered && styles.outlineCtaButtonHovered,
-                      webBtnStyles as any,
                     ]}
+                    {...(Platform.OS === 'web' ? { className: btnClasses } : {})}
                   >
                     <Text style={[
                       styles.ctaButtonText,
