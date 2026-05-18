@@ -1,7 +1,6 @@
-import { Colors } from '@/constants/theme';
 import { FontAwesome5 } from '@expo/vector-icons';
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, useWindowDimensions, Linking } from 'react-native';
+import { Linking, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
 export function ContactSection() {
   const { width } = useWindowDimensions();
@@ -14,53 +13,53 @@ export function ContactSection() {
   return (
     <View style={styles.container}>
       <Text style={[styles.mainTitle, isMobile && styles.mobileMainTitle]}>צור קשר</Text>
-      
+
       <View style={[styles.content, isMobile && styles.mobileContent]}>
-        
+
         {isMobile ? (
           // Mobile Layout: Form occupies full width, and contact buttons are grouped as clean circular icons below
           <View style={styles.mobileWrapper}>
             <View style={styles.formColumn}>
               <Text style={styles.formTitle}>פנה אלינו</Text>
               <Text style={styles.formSubtitle}>התקשרו! שיחת ייעוץ ללא תשלום</Text>
-              
+
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>:שם מלא</Text>
-                <TextInput 
-                  style={styles.input} 
-                  placeholder="שם מלא" 
+                <TextInput
+                  style={styles.input}
+                  placeholder="שם מלא"
                   placeholderTextColor="#999"
                   textAlign="right"
                 />
               </View>
-              
+
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>:טלפון</Text>
-                <TextInput 
-                  style={styles.input} 
-                  placeholder="טלפון" 
+                <TextInput
+                  style={styles.input}
+                  placeholder="טלפון"
                   placeholderTextColor="#999"
                   textAlign="right"
                   keyboardType="phone-pad"
                 />
               </View>
-              
+
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>:אמייל</Text>
-                <TextInput 
-                  style={styles.input} 
-                  placeholder="אמייל" 
+                <TextInput
+                  style={styles.input}
+                  placeholder="אמייל"
                   placeholderTextColor="#999"
                   textAlign="right"
                   keyboardType="email-address"
                 />
               </View>
-              
+
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>:תיאור הפניה</Text>
-                <TextInput 
-                  style={[styles.input, styles.textArea]} 
-                  placeholder="...תוכן הפנייה" 
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  placeholder="...תוכן הפנייה"
                   placeholderTextColor="#999"
                   textAlign="right"
                   multiline
@@ -98,44 +97,44 @@ export function ContactSection() {
             <View style={styles.formColumn}>
               <Text style={styles.formTitle}>פנה אלינו</Text>
               <Text style={styles.formSubtitle}>התקשרו! שיחת ייעוץ ללא תשלום</Text>
-              
+
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>:שם מלא</Text>
-                <TextInput 
-                  style={styles.input} 
-                  placeholder="שם מלא" 
+                <Text style={styles.label}>שם מלא:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="שם מלא"
                   placeholderTextColor="#999"
                   textAlign="right"
                 />
               </View>
-              
+
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>:טלפון</Text>
-                <TextInput 
-                  style={styles.input} 
-                  placeholder="טלפון" 
+                <Text style={styles.label}>טלפון:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="טלפון"
                   placeholderTextColor="#999"
                   textAlign="right"
                   keyboardType="phone-pad"
                 />
               </View>
-              
+
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>:אמייל</Text>
-                <TextInput 
-                  style={styles.input} 
-                  placeholder="אמייל" 
+                <Text style={styles.label}>אמייל:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="אמייל"
                   placeholderTextColor="#999"
                   textAlign="right"
                   keyboardType="email-address"
                 />
               </View>
-              
+
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>:תיאור הפניה</Text>
-                <TextInput 
-                  style={[styles.input, styles.textArea]} 
-                  placeholder="...תוכן הפנייה" 
+                <Text style={styles.label}>תיאור הפניה:</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  placeholder="...תוכן הפנייה"
                   placeholderTextColor="#999"
                   textAlign="right"
                   multiline
@@ -263,10 +262,12 @@ const styles = StyleSheet.create({
   },
   inputGroup: {
     marginBottom: 16,
+    direction: 'rtl',
   },
   label: {
     color: '#fff',
     fontSize: 16,
+    direction: 'rtl',
     marginBottom: 8,
     textAlign: 'right',
   },
@@ -275,6 +276,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     paddingHorizontal: 16,
     paddingVertical: 12,
+    textAlign: 'right',
     fontSize: 16,
     color: '#000',
   },
