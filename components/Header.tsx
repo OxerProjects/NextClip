@@ -133,13 +133,13 @@ export function Header() {
   return (
     <>
       <View
-        style={[
+        style={StyleSheet.flatten([
           styles.container,
           {
             backgroundColor: isScrolled ? 'rgba(15, 23, 42, 0.65)' : 'transparent',
             borderBottomColor: isScrolled ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
           }
-        ]}
+        ])}
         {...(Platform.OS === 'web' && isScrolled ? { className: 'header-glass-active' } : {})}
       >
         <View style={StyleSheet.flatten(isMobile ? styles.mobileContent : styles.content)}>

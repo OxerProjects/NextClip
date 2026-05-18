@@ -109,13 +109,13 @@ export function ServicesSection() {
               key={item.id}
               onHoverIn={() => !isMobile && setHoveredCard(index)}
               onHoverOut={() => !isMobile && setHoveredCard(null)}
-              style={[
+              style={StyleSheet.flatten([
                 styles.card,
                 item.isProminent ? styles.prominentCard : null,
                 isMobile ? styles.mobileCard : null,
                 isHovered ? styles.cardHovered : null,
                 (item.isProminent && isHovered) ? styles.prominentCardHovered : null,
-              ].filter(Boolean) as any}
+              ])}
               {...(Platform.OS === 'web' ? { className: cardClasses } : {})}
             >
               {item.isProminent && Platform.OS === 'web' && (
@@ -152,13 +152,13 @@ export function ServicesSection() {
                   <Pressable
                     onHoverIn={() => !isMobile && setHoveredBtn(index)}
                     onHoverOut={() => !isMobile && setHoveredBtn(null)}
-                    style={[
+                    style={StyleSheet.flatten([
                       styles.ctaButton,
                       item.isProminent ? styles.prominentCtaButton : styles.outlineCtaButton,
                       isBtnHovered ? styles.ctaButtonHovered : null,
                       (item.isProminent && isBtnHovered) ? styles.prominentCtaButtonHovered : null,
                       (!item.isProminent && isBtnHovered) ? styles.outlineCtaButtonHovered : null,
-                    ].filter(Boolean) as any}
+                    ])}
                     {...(Platform.OS === 'web' ? { className: btnClasses } : {})}
                   >
                     <Text style={[
