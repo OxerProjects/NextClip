@@ -1,11 +1,40 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, useWindowDimensions, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Image, useWindowDimensions, Platform, Pressable } from 'react-native';
 import { Colors } from '@/constants/theme';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Link } from 'expo-router';
+
+const SERVICES_DATA = [
+  {
+    id: 1,
+    title: 'מגנטים',
+    text: 'לכל תמונה יפה מגיעה איכות מקסימלית! כל מגנט מעוצב באופן אישי לבחירתכם ולפי סגנון האירוע. על החומרים שלנו אנחנו לא מתפשרים על מנת לקבל תוצאה של מזכרת מעוצבת, יוקרתית ועמידה – בדיוק כמו הרגעים שהיא מתעדת.',
+    image: 'https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?q=80&w=600',
+    isProminent: false,
+  },
+  {
+    id: 2,
+    title: 'עמדת צילום AI',
+    text: 'אצלנו לא מדובר בעוד עמדת צילום משעממת, העמדה שלנו היא אטרקציה שלא רואים באף אירוע אחר!\n\nבחירת מגוון עצום של אפקטים מיוחדים של AI, ותוספות מיוחדות (כמו: שטיח אדום, עמודי חבלול, חצובות תאורה, מראה מעוצבת עם שמות המתחתנים), הופכים את העמדה שלנו לאטרקציה יפה, מחמיאה, ומזמינה שהאורחים לא שוכחים.',
+    image: require('@/assets/images/emda1.png'),
+    isProminent: true,
+    badgeText: 'הבחירה הפופולרית',
+  },
+  {
+    id: 3,
+    title: 'צילום סטילס',
+    text: 'צלמים מקצועיים שיתפסו את כל הרגעים החשובים באירוע שלכם, החיוכים, ההתרגשות, הקסם של האירוע שלכם והכל, בצורה הכי מחמיאה ויפה שיש.',
+    image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=600',
+    isProminent: false,
+  }
+];
 
 export function ServicesSection() {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
+
+  // Track hovered state for cards and buttons
+  const [hoveredCard, setHoveredCard] = useState<number | null>(null);
+  const [hoveredBtn, setHoveredBtn] = useState<number | null>(null);
 
   return (
     <View style={styles.container}>
@@ -13,63 +42,75 @@ export function ServicesSection() {
       <Text style={[styles.mainTitle, isMobile && styles.mobileMainTitle]}>השירותים שלנו</Text>
       
       <View style={[styles.grid, isMobile && styles.mobileGrid]}>
-        
-        {/* RIGHT CARD: מגנטים */}
-        <View style={[styles.card, isMobile && styles.mobileCard]}>
-          <Image
-            source={{ uri: 'https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?q=80&w=600' }}
-            style={styles.cardImage}
-            resizeMode="cover"
-          />
-          <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>מגנטים</Text>
-            <Text style={styles.cardText}>
-              לכל תמונה יפה מגיעה איכות מקסימלית! כל מגנט מעוצב באופן אישי לבחירתכם ולפי סגנון האירוע. על החומרים שלנו אנחנו לא מתפשרים על מנת לקבל תוצאה של מזכרת מעוצבת, יוקרתית ועמידה – בדיוק כמו הרגעים שהיא מתעדת.
-            </Text>
-          </View>
-        </View>
+        {SERVICES_DATA.map((item, index) => {
+          const isHovered = hoveredCard === index;
+          const isBtnHovered = hoveredBtn === index;
+          const imageSrc = typeof item.image === 'number' ? item.image : { uri: item.image };
 
-        {/* CENTER CARD (Prominent & Larger): עמדת צילום AI */}
-        <View style={[styles.card, styles.prominentCard, isMobile && styles.mobileCard]}>
-          {Platform.OS === 'web' && (
-            <View style={styles.glowOverlay} pointerEvents="none" />
-          )}
-          
-          <View style={styles.imageWrapper}>
-            <Image
-              source={require('@/assets/images/emda1.png')}
-              style={styles.prominentImage}
-              resizeMode="cover"
-            />
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>הבחירה הפופולרית</Text>
-            </View>
-          </View>
-          
-          <View style={styles.cardContent}>
-            <Text style={[styles.cardTitle, styles.prominentTitle]}>עמדת צילום AI</Text>
-            <Text style={styles.cardText}>
-              אצלנו לא מדובר בעוד עמדת צילום משעממת, העמדה שלנו היא אטרקציה שלא רואים באף אירוע אחר!{'\n\n'}
-              בחירת מגוון עצום של אפקטים מיוחדים של AI, ותוספות מיוחדות (כמו: שטיח אדום, עמודי חבלול, חצובות תאורה, מראה מעוצבת עם שמות המתחתנים), הופכים את העמדה שלנו לאטרקציה יפה, מחמיאה, ומזמינה שהאורחים לא שוכחים.
-            </Text>
-          </View>
-        </View>
+          return (
+            <Pressable
+              key={item.id}
+              onHoverIn={() => !isMobile && setHoveredCard(index)}
+              onHoverOut={() => !isMobile && setHoveredCard(null)}
+              style={[
+                styles.card,
+                item.isProminent && styles.prominentCard,
+                isMobile && styles.mobileCard,
+                isHovered && styles.cardHovered,
+                item.isProminent && isHovered && styles.prominentCardHovered,
+              ]}
+            >
+              {item.isProminent && Platform.OS === 'web' && (
+                <View style={styles.glowOverlay} pointerEvents="none" />
+              )}
+              
+              <View style={[styles.imageWrapper, item.isProminent && styles.prominentImageWrapper]}>
+                <Image
+                  source={imageSrc}
+                  style={item.isProminent ? styles.prominentImage : styles.cardImage}
+                  resizeMode="cover"
+                />
+                {item.isProminent && item.badgeText && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{item.badgeText}</Text>
+                  </View>
+                )}
+              </View>
+              
+              <View style={styles.cardContent}>
+                <Text style={[styles.cardTitle, item.isProminent && styles.prominentTitle]}>
+                  {item.title}
+                </Text>
+                <Text style={styles.cardText}>
+                  {item.text}
+                </Text>
 
-        {/* LEFT CARD: צילום סטילס */}
-        <View style={[styles.card, isMobile && styles.mobileCard]}>
-          <Image
-            source={{ uri: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=600' }}
-            style={styles.cardImage}
-            resizeMode="cover"
-          />
-          <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>צילום סטילס</Text>
-            <Text style={styles.cardText}>
-              צלמים מקצועיים שיתפסו את כל הרגעים החשובים באירוע שלכם, החיוכים, ההתרגשות, הקסם של האירוע שלכם והכל, בצורה הכי מחמיאה ויפה שיש.
-            </Text>
-          </View>
-        </View>
-
+                {/* Button: לפרטים נוספים ומחיר */}
+                <Link href="/booking" asChild>
+                  <Pressable
+                    onHoverIn={() => !isMobile && setHoveredBtn(index)}
+                    onHoverOut={() => !isMobile && setHoveredBtn(null)}
+                    style={[
+                      styles.ctaButton,
+                      item.isProminent ? styles.prominentCtaButton : styles.outlineCtaButton,
+                      isBtnHovered && styles.ctaButtonHovered,
+                      item.isProminent && isBtnHovered && styles.prominentCtaButtonHovered,
+                      !item.isProminent && isBtnHovered && styles.outlineCtaButtonHovered,
+                    ]}
+                  >
+                    <Text style={[
+                      styles.ctaButtonText,
+                      !item.isProminent && styles.outlineCtaText,
+                      !item.isProminent && isBtnHovered && styles.outlineCtaTextHovered
+                    ]}>
+                      לפרטים נוספים ומחיר
+                    </Text>
+                  </Pressable>
+                </Link>
+              </View>
+            </Pressable>
+          );
+        })}
       </View>
     </View>
   );
@@ -109,7 +150,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   mobileGrid: {
-    flexDirection: 'column', // Stack vertically on mobile
+    flexDirection: 'column',
     gap: 40,
     paddingHorizontal: 10,
   },
@@ -126,32 +167,22 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 8,
     alignItems: 'center',
+    position: 'relative',
     ...Platform.select({
       web: {
         backdropFilter: 'blur(16px)',
-        transition: 'transform 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease',
-        cursor: 'default',
-        ':hover': {
-          transform: 'translateY(-8px)',
-          borderColor: 'rgba(0, 86, 219, 0.3)',
-          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)',
-        }
+        transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease, box-shadow 0.4s ease',
       }
     }),
   },
   prominentCard: {
-    flex: 1.15, // Make the middle card slightly wider on desktop
-    borderColor: 'rgba(0, 86, 219, 0.3)',
+    flex: 1.15,
+    borderColor: 'rgba(0, 86, 219, 0.25)',
     backgroundColor: 'rgba(0, 86, 219, 0.03)',
-    transform: Platform.OS === 'web' ? [{ scale: 1.04 }] : [], // Boost the scale on desktop
+    transform: Platform.OS === 'web' ? [{ scale: 1.03 }] : [],
     ...Platform.select({
       web: {
-        boxShadow: '0 20px 50px rgba(0, 86, 219, 0.15)',
-        ':hover': {
-          transform: 'translateY(-12px) scale(1.06)',
-          borderColor: '#0056DB',
-          boxShadow: '0 25px 60px rgba(0, 86, 219, 0.3)',
-        }
+        boxShadow: '0 20px 50px rgba(0, 86, 219, 0.12)',
       }
     }),
   },
@@ -159,6 +190,29 @@ const styles = StyleSheet.create({
     flex: 0,
     width: '100%',
     transform: [],
+  },
+  // Hover styles utilizing active state transitions for buttery smooth response
+  cardHovered: {
+    transform: [{ translateY: -12 }],
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    shadowOpacity: 0.5,
+    shadowRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)',
+      }
+    }),
+  },
+  prominentCardHovered: {
+    transform: [{ translateY: -16 }, { scale: 1.05 }],
+    borderColor: '#0056DB',
+    backgroundColor: 'rgba(0, 86, 219, 0.05)',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 30px 60px rgba(0, 86, 219, 0.3)',
+      }
+    }),
   },
   glowOverlay: {
     position: 'absolute',
@@ -173,13 +227,16 @@ const styles = StyleSheet.create({
   },
   imageWrapper: {
     width: '100%',
-    height: 280,
+    height: 240,
     position: 'relative',
     overflow: 'hidden',
   },
+  prominentImageWrapper: {
+    height: 280,
+  },
   cardImage: {
     width: '100%',
-    height: 240,
+    height: '100%',
   },
   prominentImage: {
     width: '100%',
@@ -210,6 +267,7 @@ const styles = StyleSheet.create({
     padding: 32,
     alignItems: 'center',
     direction: 'rtl',
+    width: '100%',
   },
   cardTitle: {
     fontSize: 28,
@@ -221,7 +279,7 @@ const styles = StyleSheet.create({
   },
   prominentTitle: {
     fontSize: 34,
-    color: '#3b82f6', // Glowing blue for the title
+    color: '#3b82f6',
     textShadowColor: 'rgba(59, 130, 246, 0.4)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
@@ -232,5 +290,65 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     textAlign: 'center',
     fontFamily: 'Google Sans, sans-serif',
+    marginBottom: 32,
+    minHeight: 130, // Keep height unified so CTA buttons align perfectly
+  },
+  // Button Styles
+  ctaButton: {
+    width: '100%',
+    maxWidth: 240,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({
+      web: {
+        transition: 'transform 0.25s ease, background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease',
+      }
+    }),
+  },
+  prominentCtaButton: {
+    backgroundColor: '#0056DB',
+    shadowColor: '#0056DB',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  outlineCtaButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: 'rgba(0, 86, 219, 0.5)',
+  },
+  outlineCtaButtonHovered: {
+    backgroundColor: '#0056DB',
+    borderColor: '#0056DB',
+  },
+  ctaButtonHovered: {
+    transform: [{ scale: 1.05 }],
+  },
+  prominentCtaButtonHovered: {
+    backgroundColor: '#0043b0',
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 8px 20px rgba(0, 86, 219, 0.4)',
+      }
+    }),
+  },
+  ctaButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    fontFamily: 'Google Sans, sans-serif',
+  },
+  prominentCtaButtonText: {
+    color: '#fff',
+  },
+  outlineCtaText: {
+    color: '#3b82f6',
+  },
+  outlineCtaTextHovered: {
+    color: '#fff',
   },
 });
