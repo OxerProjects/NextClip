@@ -10,6 +10,7 @@ const SERVICES_DATA = [
     text: 'לכל תמונה יפה מגיעה איכות מקסימלית! כל מגנט מעוצב באופן אישי לבחירתכם ולפי סגנון האירוע. על החומרים שלנו אנחנו לא מתפשרים על מנת לקבל תוצאה של מזכרת מעוצבת, יוקרתית ועמידה – בדיוק כמו הרגעים שהיא מתעדת.',
     image: 'https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?q=80&w=600',
     isProminent: false,
+    price: '1,190',
   },
   {
     id: 2,
@@ -18,6 +19,7 @@ const SERVICES_DATA = [
     image: require('@/assets/images/emda1.png'),
     isProminent: true,
     badgeText: 'הבחירה הפופולרית',
+    price: '1,890',
   },
   {
     id: 3,
@@ -25,6 +27,7 @@ const SERVICES_DATA = [
     text: 'צלמים מקצועיים שיתפסו את כל הרגעים החשובים באירוע שלכם, החיוכים, ההתרגשות, הקסם של האירוע שלכם והכל, בצורה הכי מחמיאה ויפה שיש.',
     image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=600',
     isProminent: false,
+    price: '1,490',
   }
 ];
 
@@ -46,7 +49,7 @@ export function ServicesSection() {
           .service-card-web {
             backdrop-filter: blur(16px) !important;
             -webkit-backdrop-filter: blur(16px) !important;
-            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease, box-shadow 0.4s ease !important;
+            transition: transform 0.65s cubic-bezier(0.25, 1.25, 0.4, 1), border-color 0.65s ease, box-shadow 0.65s ease !important;
             cursor: pointer !important;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3) !important;
           }
@@ -60,7 +63,7 @@ export function ServicesSection() {
             background-color: rgba(255, 255, 255, 0.04) !important;
           }
           .service-card-web-prominent-hovered {
-            transform: translateY(-16px) scale(1.05) !important;
+            transform: translateY(-16px) scale(1.04) !important;
             border-color: #0056DB !important;
             box-shadow: 0 30px 60px rgba(0, 86, 219, 0.3) !important;
             background-color: rgba(0, 86, 219, 0.05) !important;
@@ -147,29 +150,43 @@ export function ServicesSection() {
                   {item.text}
                 </Text>
 
-                {/* Button: לפרטים נוספים ומחיר */}
-                <Link href="/booking" asChild>
-                  <Pressable
-                    onHoverIn={() => !isMobile && setHoveredBtn(index)}
-                    onHoverOut={() => !isMobile && setHoveredBtn(null)}
-                    style={StyleSheet.flatten([
-                      styles.ctaButton,
-                      item.isProminent ? styles.prominentCtaButton : styles.outlineCtaButton,
-                      isBtnHovered ? styles.ctaButtonHovered : null,
-                      (item.isProminent && isBtnHovered) ? styles.prominentCtaButtonHovered : null,
-                      (!item.isProminent && isBtnHovered) ? styles.outlineCtaButtonHovered : null,
-                    ])}
-                    {...(Platform.OS === 'web' ? { className: btnClasses } : {})}
-                  >
-                    <Text style={[
-                      styles.ctaButtonText,
-                      !item.isProminent && styles.outlineCtaText,
-                      !item.isProminent && isBtnHovered && styles.outlineCtaTextHovered
-                    ]}>
-                      לפרטים נוספים ומחיר
-                    </Text>
-                  </Pressable>
-                </Link>
+                {/* Footer Row: Align Button and Price next to each other */}
+                <View style={StyleSheet.flatten([styles.footerRow, isMobile && styles.mobileFooterRow])}>
+                  
+                  {/* Price Block */}
+                  <View style={styles.priceBlock}>
+                    <Text style={styles.priceLabel}>החל מ-</Text>
+                    <View style={styles.priceTextRow}>
+                      <Text style={[styles.priceValue, item.isProminent && styles.prominentPriceValue]}>{item.price}</Text>
+                      <Text style={styles.priceCurrency}>₪</Text>
+                    </View>
+                  </View>
+
+                  {/* Button: לפרטים נוספים */}
+                  <Link href="/booking" asChild>
+                    <Pressable
+                      onHoverIn={() => !isMobile && setHoveredBtn(index)}
+                      onHoverOut={() => !isMobile && setHoveredBtn(null)}
+                      style={StyleSheet.flatten([
+                        styles.ctaButton,
+                        item.isProminent ? styles.prominentCtaButton : styles.outlineCtaButton,
+                        isBtnHovered ? styles.ctaButtonHovered : null,
+                        (item.isProminent && isBtnHovered) ? styles.prominentCtaButtonHovered : null,
+                        (!item.isProminent && isBtnHovered) ? styles.outlineCtaButtonHovered : null,
+                      ])}
+                      {...(Platform.OS === 'web' ? { className: btnClasses } : {})}
+                    >
+                      <Text style={[
+                        styles.ctaButtonText,
+                        !item.isProminent && styles.outlineCtaText,
+                        !item.isProminent && isBtnHovered && styles.outlineCtaTextHovered
+                      ]}>
+                        לפרטים והזמנה
+                      </Text>
+                    </Pressable>
+                  </Link>
+
+                </View>
               </View>
             </Pressable>
           );
@@ -236,7 +253,7 @@ const styles = StyleSheet.create({
     flex: 1.15,
     borderColor: 'rgba(0, 86, 219, 0.25)',
     backgroundColor: 'rgba(0, 86, 219, 0.03)',
-    transform: Platform.OS === 'web' ? [{ scale: 1.03 }] : [],
+    transform: Platform.OS === 'web' ? [{ scale: 1.02 }] : [],
   },
   mobileCard: {
     flex: 0,
@@ -252,7 +269,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
   },
   prominentCardHovered: {
-    transform: [{ translateY: -16 }, { scale: 1.05 }],
+    transform: [{ translateY: -16 }, { scale: 1.04 }],
     borderColor: '#0056DB',
     backgroundColor: 'rgba(0, 86, 219, 0.05)',
   },
@@ -324,11 +341,63 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     minHeight: 130, // Keep height unified so CTA buttons align perfectly
   },
+  // Footer Row container
+  footerRow: {
+    flexDirection: 'row-reverse', // Align button to the left and price to the right (RTL flow)
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
+    paddingTop: 24,
+    gap: 16,
+  },
+  mobileFooterRow: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 20,
+    width: '100%',
+  },
+  // Price Block Styles
+  priceBlock: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  priceLabel: {
+    fontSize: 12,
+    color: '#94a3b8',
+    marginBottom: 2,
+    fontFamily: 'Google Sans, sans-serif',
+  },
+  priceTextRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'baseline',
+    gap: 2,
+  },
+  priceValue: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#fff',
+    fontFamily: 'Google Sans, sans-serif',
+  },
+  prominentPriceValue: {
+    color: '#3b82f6',
+    textShadowColor: 'rgba(59, 130, 246, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
+  },
+  priceCurrency: {
+    fontSize: 16,
+    color: '#94a3b8',
+    fontWeight: '500',
+    fontFamily: 'Google Sans, sans-serif',
+  },
   // Button Styles
   ctaButton: {
-    width: '100%',
-    maxWidth: 240,
-    paddingVertical: 14,
+    flex: 1,
+    maxWidth: 180,
+    paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -359,7 +428,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
   },
   ctaButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
     fontFamily: 'Google Sans, sans-serif',
   },
