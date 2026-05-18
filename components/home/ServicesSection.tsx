@@ -49,7 +49,7 @@ export function ServicesSection() {
           .service-card-web {
             backdrop-filter: blur(16px) !important;
             -webkit-backdrop-filter: blur(16px) !important;
-            transition: transform 0.65s cubic-bezier(0.25, 1.25, 0.4, 1), border-color 0.65s ease, box-shadow 0.65s ease !important;
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.5s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
             cursor: pointer !important;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3) !important;
           }
@@ -57,13 +57,13 @@ export function ServicesSection() {
             box-shadow: 0 20px 50px rgba(0, 86, 219, 0.12) !important;
           }
           .service-card-web-hovered {
-            transform: translateY(-12px) !important;
+            transform: translateY(-8px) !important;
             border-color: rgba(255, 255, 255, 0.2) !important;
             box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5) !important;
             background-color: rgba(255, 255, 255, 0.04) !important;
           }
           .service-card-web-prominent-hovered {
-            transform: translateY(-16px) scale(1.04) !important;
+            transform: translateY(-10px) scale(1.02) !important;
             border-color: #0056DB !important;
             box-shadow: 0 30px 60px rgba(0, 86, 219, 0.3) !important;
             background-color: rgba(0, 86, 219, 0.05) !important;
@@ -72,7 +72,7 @@ export function ServicesSection() {
             background-image: radial-gradient(circle at top, rgba(0, 86, 219, 0.15) 0%, transparent 60%) !important;
           }
           .service-btn-web {
-            transition: transform 0.25s ease, background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease !important;
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
           }
           .service-btn-web-prominent-hovered {
             box-shadow: 0 8px 20px rgba(0, 86, 219, 0.4) !important;
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
     flex: 1.15,
     borderColor: 'rgba(0, 86, 219, 0.25)',
     backgroundColor: 'rgba(0, 86, 219, 0.03)',
-    transform: Platform.OS === 'web' ? [{ scale: 1.02 }] : [],
+    transform: Platform.OS === 'web' ? [{ scale: 1.01 }] : [],
   },
   mobileCard: {
     flex: 0,
@@ -262,14 +262,14 @@ const styles = StyleSheet.create({
   },
   // Hover styles utilizing active state transitions for buttery smooth response
   cardHovered: {
-    transform: [{ translateY: -12 }],
+    transform: [{ translateY: -8 }],
     borderColor: 'rgba(255, 255, 255, 0.2)',
     shadowOpacity: 0.5,
     shadowRadius: 24,
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
   },
   prominentCardHovered: {
-    transform: [{ translateY: -16 }, { scale: 1.04 }],
+    transform: [{ translateY: -10 }, { scale: 1.02 }],
     borderColor: '#0056DB',
     backgroundColor: 'rgba(0, 86, 219, 0.05)',
   },
