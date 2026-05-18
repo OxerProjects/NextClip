@@ -47,6 +47,22 @@ export function ServicesSection() {
           const isBtnHovered = hoveredBtn === index;
           const imageSrc = typeof item.image === 'number' ? item.image : { uri: item.image };
 
+          // Build dynamic inline Web-only styles to prevent StyleSheet.create style-parser compile crashes on Web
+          const webCardStyles = Platform.OS === 'web' ? {
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease, box-shadow 0.4s ease',
+            cursor: 'pointer',
+            boxShadow: isHovered
+              ? (item.isProminent ? '0 30px 60px rgba(0, 86, 219, 0.3)' : '0 25px 50px rgba(0, 0, 0, 0.5)')
+              : (item.isProminent ? '0 20px 50px rgba(0, 86, 219, 0.12)' : '0 8px 16px rgba(0, 0, 0, 0.3)'),
+          } : {};
+
+          const webBtnStyles = Platform.OS === 'web' ? {
+            transition: 'transform 0.25s ease, background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease',
+            boxShadow: item.isProminent && isBtnHovered ? '0 8px 20px rgba(0, 86, 219, 0.4)' : 'none',
+          } : {};
+
           return (
             <Pressable
               key={item.id}
@@ -58,10 +74,21 @@ export function ServicesSection() {
                 isMobile && styles.mobileCard,
                 isHovered && styles.cardHovered,
                 item.isProminent && isHovered && styles.prominentCardHovered,
+                webCardStyles as any,
               ]}
             >
               {item.isProminent && Platform.OS === 'web' && (
-                <View style={styles.glowOverlay} pointerEvents="none" />
+                <View 
+                  style={[
+                    StyleSheet.absoluteFillObject,
+                    {
+                      borderRadius: 24,
+                      backgroundImage: 'radial-gradient(circle at top, rgba(0, 86, 219, 0.15) 0%, transparent 60%)',
+                      zIndex: 1,
+                    } as any
+                  ]}
+                  pointerEvents="none"
+                />
               )}
               
               <View style={[styles.imageWrapper, item.isProminent && styles.prominentImageWrapper]}>
@@ -96,6 +123,7 @@ export function ServicesSection() {
                       isBtnHovered && styles.ctaButtonHovered,
                       item.isProminent && isBtnHovered && styles.prominentCtaButtonHovered,
                       !item.isProminent && isBtnHovered && styles.outlineCtaButtonHovered,
+                      webBtnStyles as any,
                     ]}
                   >
                     <Text style={[
@@ -168,23 +196,12 @@ const styles = StyleSheet.create({
     elevation: 8,
     alignItems: 'center',
     position: 'relative',
-    ...Platform.select({
-      web: {
-        backdropFilter: 'blur(16px)',
-        transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease, box-shadow 0.4s ease',
-      }
-    }),
   },
   prominentCard: {
     flex: 1.15,
     borderColor: 'rgba(0, 86, 219, 0.25)',
     backgroundColor: 'rgba(0, 86, 219, 0.03)',
     transform: Platform.OS === 'web' ? [{ scale: 1.03 }] : [],
-    ...Platform.select({
-      web: {
-        boxShadow: '0 20px 50px rgba(0, 86, 219, 0.12)',
-      }
-    }),
   },
   mobileCard: {
     flex: 0,
@@ -198,32 +215,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 24,
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    ...Platform.select({
-      web: {
-        boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)',
-      }
-    }),
   },
   prominentCardHovered: {
     transform: [{ translateY: -16 }, { scale: 1.05 }],
     borderColor: '#0056DB',
     backgroundColor: 'rgba(0, 86, 219, 0.05)',
-    ...Platform.select({
-      web: {
-        boxShadow: '0 30px 60px rgba(0, 86, 219, 0.3)',
-      }
-    }),
-  },
-  glowOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 24,
-    // @ts-ignore
-    backgroundImage: 'radial-gradient(circle at top, rgba(0, 86, 219, 0.15) 0%, transparent 60%)',
-    zIndex: 1,
   },
   imageWrapper: {
     width: '100%',
@@ -301,11 +297,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    ...Platform.select({
-      web: {
-        transition: 'transform 0.25s ease, background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease',
-      }
-    }),
   },
   prominentCtaButton: {
     backgroundColor: '#0056DB',
@@ -331,11 +322,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#0043b0',
     shadowOpacity: 0.5,
     shadowRadius: 12,
-    ...Platform.select({
-      web: {
-        boxShadow: '0 8px 20px rgba(0, 86, 219, 0.4)',
-      }
-    }),
   },
   ctaButtonText: {
     fontSize: 16,
