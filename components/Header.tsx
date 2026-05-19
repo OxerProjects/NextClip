@@ -70,6 +70,7 @@ export function Header() {
     }).start();
   }, [showCta]);
 
+
   // Toggle mobile menu drawer animation
   const toggleMenu = (open: boolean) => {
     if (open) {
@@ -108,6 +109,13 @@ export function Header() {
       }
     }
   }, []);
+
+  // Hide header on login, client private events, and admin dashboard
+  // Placing this check AFTER all hook declarations ensures strict hook ordering
+  const hideHeaderRoutes = ['/login', '/client-event', '/dashboard'];
+  if (hideHeaderRoutes.includes(pathname)) {
+    return null;
+  }
 
   const ctaFlex = animValue.interpolate({
     inputRange: [0, 1],
@@ -181,13 +189,34 @@ export function Header() {
                 !showCta && { justifyContent: 'right' as any },
               ]}>
                 <Link href="/specialties" asChild>
-                  <Pressable><Text style={styles.navText}>תחומי התמחות</Text></Pressable>
+                  <Pressable>
+                    <Text style={StyleSheet.flatten([
+                      styles.navText,
+                      pathname === '/specialties' && styles.activeNavText
+                    ])}>
+                      תחומי התמחות
+                    </Text>
+                  </Pressable>
                 </Link>
                 <Link href="/gallery" asChild>
-                  <Pressable><Text style={styles.navText}>גלריה</Text></Pressable>
+                  <Pressable>
+                    <Text style={StyleSheet.flatten([
+                      styles.navText,
+                      pathname === '/gallery' && styles.activeNavText
+                    ])}>
+                      גלריה
+                    </Text>
+                  </Pressable>
                 </Link>
                 <Link href="/about" asChild>
-                  <Pressable><Text style={styles.navText}>קצת עלינו</Text></Pressable>
+                  <Pressable>
+                    <Text style={StyleSheet.flatten([
+                      styles.navText,
+                      pathname === '/about' && styles.activeNavText
+                    ])}>
+                      קצת עלינו
+                    </Text>
+                  </Pressable>
                 </Link>
               </Animated.View>
 
@@ -234,17 +263,32 @@ export function Header() {
           <View style={styles.menuLinks}>
             <Link href="/specialties" asChild>
               <Pressable onPress={() => toggleMenu(false)}>
-                <Text style={styles.menuLinkText}>תחומי התמחות</Text>
+                <Text style={StyleSheet.flatten([
+                  styles.menuLinkText,
+                  pathname === '/specialties' && styles.activeMenuLinkText
+                ])}>
+                  תחומי התמחות
+                </Text>
               </Pressable>
             </Link>
             <Link href="/gallery" asChild>
               <Pressable onPress={() => toggleMenu(false)}>
-                <Text style={styles.menuLinkText}>גלריה</Text>
+                <Text style={StyleSheet.flatten([
+                  styles.menuLinkText,
+                  pathname === '/gallery' && styles.activeMenuLinkText
+                ])}>
+                  גלריה
+                </Text>
               </Pressable>
             </Link>
             <Link href="/about" asChild>
               <Pressable onPress={() => toggleMenu(false)}>
-                <Text style={styles.menuLinkText}>קצת עלינו</Text>
+                <Text style={StyleSheet.flatten([
+                  styles.menuLinkText,
+                  pathname === '/about' && styles.activeMenuLinkText
+                ])}>
+                  קצת עלינו
+                </Text>
               </Pressable>
             </Link>
           </View>
@@ -401,5 +445,12 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 20,
     fontWeight: 'bold',
+  },
+  activeNavText: {
+    color: '#3b82f6', // Sleek Brand Cyan Highlight
+    fontWeight: '700' as const,
+  },
+  activeMenuLinkText: {
+    color: '#3b82f6',
   },
 });

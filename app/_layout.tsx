@@ -55,6 +55,9 @@ export default function RootLayout() {
         <Stack.Screen name="gallery" />
         <Stack.Screen name="about" />
         <Stack.Screen name="booking" />
+        <Stack.Screen name="login" />
+        <Stack.Screen name="client-event" />
+        <Stack.Screen name="dashboard" />
       </Stack>
       <StatusBar style="light" />
     </ThemeProvider>

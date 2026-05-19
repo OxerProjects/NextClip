@@ -524,12 +524,6 @@ export default function GalleryPage() {
         </TouchableOpacity>
       </View>
 
-      {/* Dashboard shortcut */}
-      <Link href="/dashboard" asChild>
-        <TouchableOpacity style={styles.dashboardBtn}>
-          <FontAwesome name="cog" size={22} color="#fff" />
-        </TouchableOpacity>
-      </Link>
     </View>
   );
 }

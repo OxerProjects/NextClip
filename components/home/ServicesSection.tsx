@@ -84,11 +84,11 @@ export function ServicesSection() {
   }, []);
 
   return (
-    <View style={styles.container}>
+    <View style={StyleSheet.flatten([styles.container, isMobile && styles.mobileContainer])}>
       {/* Title */}
-      <Text style={[styles.mainTitle, isMobile && styles.mobileMainTitle]}>השירותים שלנו</Text>
+      <Text style={StyleSheet.flatten([styles.mainTitle, isMobile && styles.mobileMainTitle])}>השירותים שלנו</Text>
       
-      <View style={[styles.grid, isMobile && styles.mobileGrid]}>
+      <View style={StyleSheet.flatten([styles.grid, isMobile && styles.mobileGrid])}>
         {SERVICES_DATA.map((item, index) => {
           const isHovered = hoveredCard === index;
           const isBtnHovered = hoveredBtn === index;
@@ -114,8 +114,8 @@ export function ServicesSection() {
               onHoverOut={() => !isMobile && setHoveredCard(null)}
               style={StyleSheet.flatten([
                 styles.card,
-                item.isProminent ? styles.prominentCard : null,
-                isMobile ? styles.mobileCard : null,
+                !isMobile ? styles.desktopCard : styles.mobileCard,
+                (item.isProminent && !isMobile) ? styles.prominentCard : null,
                 isHovered ? styles.cardHovered : null,
                 (item.isProminent && isHovered) ? styles.prominentCardHovered : null,
               ])}
@@ -129,7 +129,7 @@ export function ServicesSection() {
                 />
               )}
               
-              <View style={[styles.imageWrapper, item.isProminent && styles.prominentImageWrapper]}>
+              <View style={StyleSheet.flatten([styles.imageWrapper, item.isProminent && styles.prominentImageWrapper, isMobile && styles.mobileImageWrapper])}>
                 <Image
                   source={imageSrc}
                   style={item.isProminent ? styles.prominentImage : styles.cardImage}
@@ -142,11 +142,11 @@ export function ServicesSection() {
                 )}
               </View>
               
-              <View style={styles.cardContent}>
-                <Text style={[styles.cardTitle, item.isProminent && styles.prominentTitle]}>
+              <View style={StyleSheet.flatten([styles.cardContent, isMobile && styles.mobileCardContent])}>
+                <Text style={StyleSheet.flatten([styles.cardTitle, item.isProminent && styles.prominentTitle, isMobile && styles.mobileCardTitle])}>
                   {item.title}
                 </Text>
-                <Text style={styles.cardText}>
+                <Text style={StyleSheet.flatten([styles.cardText, isMobile && styles.mobileCardText])}>
                   {item.text}
                 </Text>
 
@@ -154,10 +154,10 @@ export function ServicesSection() {
                 <View style={StyleSheet.flatten([styles.footerRow, isMobile && styles.mobileFooterRow])}>
                   
                   {/* Price Block */}
-                  <View style={styles.priceBlock}>
+                  <View style={StyleSheet.flatten([styles.priceBlock, isMobile && styles.mobilePriceBlock])}>
                     <Text style={styles.priceLabel}>החל מ-</Text>
                     <View style={styles.priceTextRow}>
-                      <Text style={[styles.priceValue, item.isProminent && styles.prominentPriceValue]}>{item.price}</Text>
+                      <Text style={StyleSheet.flatten([styles.priceValue, item.isProminent && styles.prominentPriceValue])}>{item.price}</Text>
                       <Text style={styles.priceCurrency}>₪</Text>
                     </View>
                   </View>
@@ -170,6 +170,7 @@ export function ServicesSection() {
                       style={StyleSheet.flatten([
                         styles.ctaButton,
                         item.isProminent ? styles.prominentCtaButton : styles.outlineCtaButton,
+                        isMobile ? styles.mobileCtaButton : null,
                         isBtnHovered ? styles.ctaButtonHovered : null,
                         (item.isProminent && isBtnHovered) ? styles.prominentCtaButtonHovered : null,
                         (!item.isProminent && isBtnHovered) ? styles.outlineCtaButtonHovered : null,
@@ -206,6 +207,10 @@ const styles = StyleSheet.create({
     position: 'relative',
     zIndex: 11,
   },
+  mobileContainer: {
+    paddingVertical: 60,
+    paddingHorizontal: 16,
+  },
   mainTitle: {
     fontSize: 56,
     fontWeight: '900',
@@ -218,7 +223,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 15,
   },
   mobileMainTitle: {
-    fontSize: 38,
+    fontSize: 34,
     marginBottom: 40,
   },
   grid: {
@@ -231,11 +236,12 @@ const styles = StyleSheet.create({
   },
   mobileGrid: {
     flexDirection: 'column',
-    gap: 40,
-    paddingHorizontal: 10,
+    gap: 32,
+    paddingHorizontal: 0,
+    width: '100%',
+    alignItems: 'center',
   },
   card: {
-    flex: 1,
     backgroundColor: 'rgba(255, 255, 255, 0.02)',
     borderRadius: 24,
     borderWidth: 1,
@@ -249,6 +255,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
   },
+  desktopCard: {
+    flex: 1,
+  },
   prominentCard: {
     flex: 1.15,
     borderColor: 'rgba(0, 86, 219, 0.25)',
@@ -256,9 +265,8 @@ const styles = StyleSheet.create({
     transform: Platform.OS === 'web' ? [{ scale: 1.01 }] : [],
   },
   mobileCard: {
-    flex: 0,
     width: '100%',
-    transform: [],
+    maxWidth: 450,
   },
   // Hover styles utilizing active state transitions for buttery smooth response
   cardHovered: {
@@ -281,6 +289,9 @@ const styles = StyleSheet.create({
   },
   prominentImageWrapper: {
     height: 280,
+  },
+  mobileImageWrapper: {
+    height: 200,
   },
   cardImage: {
     width: '100%',
@@ -317,6 +328,9 @@ const styles = StyleSheet.create({
     direction: 'rtl',
     width: '100%',
   },
+  mobileCardContent: {
+    padding: 20,
+  },
   cardTitle: {
     fontSize: 28,
     fontWeight: 'bold',
@@ -324,6 +338,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: 'center',
     fontFamily: 'Google Sans, sans-serif',
+  },
+  mobileCardTitle: {
+    fontSize: 24,
+    marginBottom: 12,
   },
   prominentTitle: {
     fontSize: 34,
@@ -341,6 +359,12 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     minHeight: 130, // Keep height unified so CTA buttons align perfectly
   },
+  mobileCardText: {
+    fontSize: 14,
+    lineHeight: 22,
+    minHeight: 0,
+    marginBottom: 24,
+  },
   // Footer Row container
   footerRow: {
     flexDirection: 'row-reverse', // Align button to the left and price to the right (RTL flow)
@@ -354,15 +378,19 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   mobileFooterRow: {
-    flexDirection: 'column',
+    flexDirection: 'column-reverse', // Price on top of full-width button
     alignItems: 'center',
-    gap: 20,
+    gap: 16,
     width: '100%',
+    paddingTop: 16,
   },
   // Price Block Styles
   priceBlock: {
     alignItems: 'flex-end',
     justifyContent: 'center',
+  },
+  mobilePriceBlock: {
+    alignItems: 'center',
   },
   priceLabel: {
     fontSize: 12,
@@ -401,6 +429,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  mobileCtaButton: {
+    flex: 0,
+    width: '100%',
+    maxWidth: '100%',
   },
   prominentCtaButton: {
     backgroundColor: '#0056DB',
