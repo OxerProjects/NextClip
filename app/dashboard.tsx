@@ -1,5 +1,6 @@
 import { Colors } from '@/constants/theme';
 import { ClientEvent, deleteClientEvent, deleteGalleryImage, GalleryImage, getClientEvents, getGalleryImages, saveClientEvent, saveGalleryImage } from '@/utils/storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -55,7 +56,15 @@ export default function DashboardPage() {
   const [dbTokenMissing, setDbTokenMissing] = useState(false);
 
   useEffect(() => {
-    loadAllData();
+    const checkAuth = async () => {
+      const isAdmin = await AsyncStorage.getItem('@nextclip_admin_session');
+      if (isAdmin !== 'true') {
+        router.replace('/login');
+      } else {
+        loadAllData();
+      }
+    };
+    checkAuth();
   }, []);
 
   // Native HTML5 Drag and Drop event listener attachments to completely bypass React Native's Responder system blockages on Web

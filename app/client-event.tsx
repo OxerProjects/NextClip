@@ -1,5 +1,6 @@
 import { Colors } from '@/constants/theme';
 import { ClientEvent, getClientEvents } from '@/utils/storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
@@ -24,7 +25,22 @@ export default function ClientEventScreen() {
   const [previewImageUri, setPreviewImageUri] = useState<string | null>(null);
 
   useEffect(() => {
-    loadEventData();
+    const checkAuth = async () => {
+      if (!id) {
+        setLoading(false);
+        return;
+      }
+
+      const isAdmin = await AsyncStorage.getItem('@nextclip_admin_session');
+      const isAuthorizedEvent = await AsyncStorage.getItem(`@nextclip_auth_event_${id}`);
+
+      if (isAdmin !== 'true' && isAuthorizedEvent !== 'true') {
+        router.replace('/login');
+      } else {
+        loadEventData();
+      }
+    };
+    checkAuth();
   }, [id]);
 
   const loadEventData = async () => {

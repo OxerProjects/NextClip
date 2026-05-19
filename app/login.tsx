@@ -1,5 +1,6 @@
 import { Colors } from '@/constants/theme';
 import { getClientEvents } from '@/utils/storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Image, Platform, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
@@ -26,6 +27,7 @@ export default function LoginScreen() {
 
       // Admin route override
       if (cleanCode.toLowerCase() === 'admin') {
+        await AsyncStorage.setItem('@nextclip_admin_session', 'true');
         router.push('/dashboard');
         setLoading(false);
         return;
@@ -36,6 +38,8 @@ export default function LoginScreen() {
       const foundEvent = events.find(e => e.code === cleanCode);
 
       if (foundEvent) {
+        // Authorize this specific event
+        await AsyncStorage.setItem(`@nextclip_auth_event_${foundEvent.id}`, 'true');
         // Redirect to private client event view
         router.push(`/client-event?id=${foundEvent.id}`);
       } else {
