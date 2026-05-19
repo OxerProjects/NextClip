@@ -131,10 +131,7 @@ export default function DashboardPage() {
     setEventCode('');
     setEventDate(new Date().toISOString().split('T')[0]);
     setEventDuration('30');
-    setEventImages([
-      'https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=600',
-      'https://images.unsplash.com/photo-1549417229-aa67d3263c09?q=80&w=600',
-    ]);
+    setEventImages([]);
     setShowEventForm(true);
   };
 

@@ -270,6 +270,7 @@ export default function ClientEventScreen() {
           ) : (
             <View style={styles.imageGrid}>
               {event.images.map((imgUri, idx) => {
+                if (!imgUri) return null; // Safeguard against corrupted data from previous tests
                 const isSelected = selectedImages.includes(imgUri);
                 return (
                   <Pressable

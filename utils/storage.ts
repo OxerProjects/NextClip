@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 export type GalleryImage = {
   id: string;
@@ -53,6 +54,22 @@ export const saveGalleryImage = async (image: Omit<GalleryImage, 'id' | 'col' | 
   try {
     const images = await getGalleryImages();
     
+    let uri = image.uri;
+    if (Platform.OS === 'web' && uri.startsWith('blob:')) {
+      try {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        uri = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } catch (e) {
+        console.error('Failed to convert public gallery blob to base64', e);
+      }
+    }
+
     const colHeights = new Array(NUM_COLS).fill(0);
     images.forEach(img => {
       const bottom = img.row_y + img.height + GAP;
@@ -66,6 +83,7 @@ export const saveGalleryImage = async (image: Omit<GalleryImage, 'id' | 'col' | 
 
     const newImage: GalleryImage = {
       ...image,
+      uri,
       id: Date.now().toString(),
       col: minCol,
       row_y: colHeights[minCol],
@@ -149,34 +167,49 @@ const fetchWithFallback = async (action: string, bodyData?: any) => {
   return null;
 };
 
-// Auto-uploader of local base64/blob images to secure Vercel Blob storage
 const uploadImageToVercelBlob = async (uri: string, filename: string): Promise<string> => {
   try {
-    if (!shouldCallApi()) return uri;
-    if (uri.startsWith('http') && !uri.startsWith('data:') && !uri.includes('localhost')) {
-      return uri; // Already uploaded to cloud CDN
+    // 1. First, always convert temporary browser blob URI to permanent base64 data string so we don't lose it on refresh/navigation!
+    let activeUri = uri;
+    if (Platform.OS === 'web' && uri.startsWith('blob:')) {
+      try {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        activeUri = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } catch (e) {
+        console.error('Failed to convert local blob to base64', e);
+      }
     }
 
+    // 2. If we are in local offline mode (or API shouldn't be called), return the permanent base64 URI immediately
+    if (!shouldCallApi()) {
+      return activeUri;
+    }
+
+    // 3. If it's already uploaded to the cloud CDN, keep it
+    if (activeUri.startsWith('http') && !activeUri.startsWith('data:') && !activeUri.includes('localhost')) {
+      return activeUri;
+    }
+
+    // 4. Try uploading to secure Vercel Blob cloud database
     let base64 = '';
-    if (uri.startsWith('data:')) {
-      const parts = uri.split(',');
+    if (activeUri.startsWith('data:')) {
+      const parts = activeUri.split(',');
       base64 = parts[1] || parts[0];
     } else {
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const res = reader.result as string;
-          const parts = res.split(',');
-          resolve(parts[1] || parts[0]);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
+      // Fallback in case it's not data: scheme
+      base64 = activeUri;
     }
 
-    const response = await fetch(`${window.location.origin}/api/nextclip-db`, {
+    const apiUrl = getApiUrl();
+    if (!apiUrl) return activeUri;
+
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -188,8 +221,13 @@ const uploadImageToVercelBlob = async (uri: string, filename: string): Promise<s
 
     if (response.ok) {
       const data = await response.json();
-      return data.url; // Vercel Blob URL
+      if (data && data.url) {
+        return data.url; // Vercel Blob public CDN URL
+      }
     }
+    
+    // 5. If Vercel API is not deployed yet or fails, return the permanent base64 so it works perfectly locally!
+    return activeUri;
   } catch (e) {
     console.error('Vercel Blob image upload failed:', e);
   }
