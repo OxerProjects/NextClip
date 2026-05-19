@@ -30,6 +30,54 @@ const NUM_COLS = 8;
 
 export const GRID_TOTAL_WIDTH = NUM_COLS * (IMG_WIDTH + GAP) - GAP;
 
+// --- IMAGE COMPRESSION HELPER FOR WEB ---
+
+const compressImageWeb = async (uri: string, maxDim = 1200, quality = 0.75): Promise<string> => {
+  if (Platform.OS !== 'web') return uri;
+  
+  return new Promise<string>((resolve) => {
+    const img = new window.Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height / width) * maxDim);
+            width = maxDim;
+          } else {
+            width = Math.round((width / height) * maxDim);
+            height = maxDim;
+          }
+        }
+        
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(uri);
+          return;
+        }
+        
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedDataUrl);
+      } catch (err) {
+        console.error('Failed resizing image on canvas', err);
+        resolve(uri);
+      }
+    };
+    img.onerror = () => {
+      resolve(uri);
+    };
+    img.src = uri;
+  });
+};
+
 // --- PUBLIC GALLERY FUNCTIONS ---
 
 export const getGalleryImages = async (): Promise<GalleryImage[]> => {
@@ -55,19 +103,8 @@ export const saveGalleryImage = async (image: Omit<GalleryImage, 'id' | 'col' | 
     const images = await getGalleryImages();
     
     let uri = image.uri;
-    if (Platform.OS === 'web' && uri.startsWith('blob:')) {
-      try {
-        const response = await fetch(uri);
-        const blob = await response.blob();
-        uri = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-      } catch (e) {
-        console.error('Failed to convert public gallery blob to base64', e);
-      }
+    if (Platform.OS === 'web') {
+      uri = await compressImageWeb(uri, 600, 0.75); // Gallery images are smaller, max 600px is perfect!
     }
 
     const colHeights = new Array(NUM_COLS).fill(0);
@@ -169,30 +206,19 @@ const fetchWithFallback = async (action: string, bodyData?: any) => {
 
 const uploadImageToVercelBlob = async (uri: string, filename: string): Promise<string> => {
   try {
-    // 1. First, always convert temporary browser blob URI to permanent base64 data string so we don't lose it on refresh/navigation!
+    // 1. If it's already uploaded to the cloud CDN, keep it
+    if (uri.startsWith('http') && !uri.startsWith('data:') && !uri.includes('localhost')) {
+      return uri;
+    }
+
+    // 2. Compress the image to small base64 string on Web to prevent payload size limits and expired blobs!
     let activeUri = uri;
-    if (Platform.OS === 'web' && uri.startsWith('blob:')) {
-      try {
-        const response = await fetch(uri);
-        const blob = await response.blob();
-        activeUri = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-      } catch (e) {
-        console.error('Failed to convert local blob to base64', e);
-      }
+    if (Platform.OS === 'web') {
+      activeUri = await compressImageWeb(uri);
     }
 
-    // 2. If we are in local offline mode (or API shouldn't be called), return the permanent base64 URI immediately
+    // 3. If we are in local offline mode (or API shouldn't be called), return the permanent compressed base64 URI immediately
     if (!shouldCallApi()) {
-      return activeUri;
-    }
-
-    // 3. If it's already uploaded to the cloud CDN, keep it
-    if (activeUri.startsWith('http') && !activeUri.startsWith('data:') && !activeUri.includes('localhost')) {
       return activeUri;
     }
 
@@ -202,7 +228,6 @@ const uploadImageToVercelBlob = async (uri: string, filename: string): Promise<s
       const parts = activeUri.split(',');
       base64 = parts[1] || parts[0];
     } else {
-      // Fallback in case it's not data: scheme
       base64 = activeUri;
     }
 
@@ -226,7 +251,7 @@ const uploadImageToVercelBlob = async (uri: string, filename: string): Promise<s
       }
     }
     
-    // 5. If Vercel API is not deployed yet or fails, return the permanent base64 so it works perfectly locally!
+    // 5. If Vercel API is not configured or fails, return the compressed base64!
     return activeUri;
   } catch (e) {
     console.error('Vercel Blob image upload failed:', e);
@@ -238,12 +263,38 @@ const uploadImageToVercelBlob = async (uri: string, filename: string): Promise<s
 
 export const getClientEvents = async (): Promise<ClientEvent[]> => {
   try {
+    const localData = await AsyncStorage.getItem(EVENTS_STORAGE_KEY);
+    const localEvents = localData ? JSON.parse(localData) : [];
+
     // Try Vercel Serverless database first
     const apiEvents = await fetchWithFallback('get_events');
-    if (apiEvents) {
-      // Also update local cache for offline speeds
-      await AsyncStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(apiEvents));
-      return apiEvents;
+    if (apiEvents && Array.isArray(apiEvents)) {
+      // If server is empty but we have local events, push them to server in background to sync!
+      if (apiEvents.length === 0 && localEvents.length > 0) {
+        try {
+          await fetchWithFallback('save_events', { data: localEvents });
+        } catch (e) {
+          console.warn('Auto-sync local events to server failed:', e);
+        }
+        return localEvents;
+      }
+
+      // Merge events so we don't lose local events that aren't on the server yet
+      const mergedMap = new Map<string, ClientEvent>();
+      
+      // Load local ones first
+      localEvents.forEach((ev: any) => {
+        if (ev && ev.id) mergedMap.set(ev.id, ev);
+      });
+
+      // Load server ones over them (server is source of truth for synced ones)
+      apiEvents.forEach((ev: any) => {
+        if (ev && ev.id) mergedMap.set(ev.id, ev);
+      });
+
+      const merged = Array.from(mergedMap.values());
+      await AsyncStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(merged));
+      return merged;
     }
 
     // Local storage fallback
@@ -317,6 +368,39 @@ export const deleteClientEvent = async (eventId: string) => {
     await AsyncStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(filtered));
   } catch (error) {
     console.error('Failed to delete client event', error);
+  }
+};
+
+export const deleteGalleryImage = async (imageId: string): Promise<GalleryImage[]> => {
+  try {
+    const images = await getGalleryImages();
+    const filtered = images.filter(img => img.id !== imageId);
+
+    // Recalculate columns heights for remaining images to keep masonry layout balanced
+    const colHeights = new Array(NUM_COLS).fill(0);
+    const updated = filtered.map(img => {
+      let minCol = 0;
+      for (let c = 1; c < NUM_COLS; c++) {
+        if (colHeights[c] < colHeights[minCol]) minCol = c;
+      }
+      const top = colHeights[minCol];
+      colHeights[minCol] += img.height + GAP;
+      return {
+        ...img,
+        col: minCol,
+        row_y: top,
+      };
+    });
+
+    // Write to server
+    await fetchWithFallback('save_gallery', { data: updated });
+
+    // Back up locally
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    return updated;
+  } catch (error) {
+    console.error('Failed to delete gallery image', error);
+    return [];
   }
 };
 

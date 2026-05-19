@@ -1,5 +1,5 @@
 import { Colors } from '@/constants/theme';
-import { ClientEvent, deleteClientEvent, GalleryImage, getClientEvents, getGalleryImages, saveClientEvent, saveGalleryImage } from '@/utils/storage';
+import { ClientEvent, deleteClientEvent, deleteGalleryImage, GalleryImage, getClientEvents, getGalleryImages, saveClientEvent, saveGalleryImage } from '@/utils/storage';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -37,6 +37,9 @@ export default function DashboardPage() {
   const [imageWidth, setImageWidth] = useState(0);
   const [imageHeight, setImageHeight] = useState(0);
   const [galleryCategory, setGalleryCategory] = useState('#חתונה');
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [categoriesList, setCategoriesList] = useState(['#חתונה', '#בר מצווה', '#בת מצווה', '#אירוע חברה']);
+  const [newCategoryText, setNewCategoryText] = useState('');
   const [isUploading, setIsUploading] = useState(false);
 
   // --- CALENDAR STATES ---
@@ -49,6 +52,7 @@ export default function DashboardPage() {
   });
   const [newBookingTitle, setNewBookingTitle] = useState('');
   const [newBookingTime, setNewBookingTime] = useState('');
+  const [dbTokenMissing, setDbTokenMissing] = useState(false);
 
   useEffect(() => {
     loadAllData();
@@ -117,8 +121,33 @@ export default function DashboardPage() {
   }, [showEventForm]);
 
   const loadAllData = async () => {
+    // Check if the Vercel Blob is configured
+    if (Platform.OS === 'web') {
+      try {
+        const apiUrl = `${window.location.origin}/api/nextclip-db`;
+        const res = await fetch(apiUrl);
+        if (res.status === 500) {
+          const data = await res.json();
+          if (data?.error && data.error.includes('BLOB_READ_WRITE_TOKEN')) {
+            setDbTokenMissing(true);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to check API status:', e);
+      }
+    }
+
     const pubImages = await getGalleryImages();
     setGalleryImages(pubImages);
+
+    // Dynamically extract unique categories from actual images
+    const existingCats = new Set(['#חתונה', '#בר מצווה', '#בת מצווה', '#אירוע חברה']);
+    pubImages.forEach(img => {
+      if (img.category) {
+        existingCats.add(img.category);
+      }
+    });
+    setCategoriesList(Array.from(existingCats));
 
     const events = await getClientEvents();
     setClientEvents(events);
@@ -154,6 +183,34 @@ export default function DashboardPage() {
       await deleteClientEvent(id);
       loadAllData();
     }
+  };
+
+  const handleDeleteGalleryClick = async (id: string) => {
+    const confirmDelete = Platform.OS === 'web'
+      ? window.confirm('האם אתה בטוח שברצונך למחוק תמונה זו מהגלריה הציבורית?')
+      : true;
+
+    if (confirmDelete) {
+      const updated = await deleteGalleryImage(id);
+      setGalleryImages(updated);
+    }
+  };
+
+  const handleAddNewCategory = () => {
+    let cleanCat = newCategoryText.trim();
+    if (!cleanCat) return;
+    
+    if (!cleanCat.startsWith('#')) {
+      cleanCat = '#' + cleanCat;
+    }
+
+    if (!categoriesList.includes(cleanCat)) {
+      setCategoriesList(prev => [...prev, cleanCat]);
+    }
+    
+    setGalleryCategory(cleanCat);
+    setNewCategoryText('');
+    setShowCategoryDropdown(false);
   };
 
   const pickEventImages = async () => {
@@ -254,21 +311,28 @@ export default function DashboardPage() {
       {/* Dashboard Top Header */}
       <View style={StyleSheet.flatten([styles.header, isMobile && styles.mobileHeader])}>
         {/* LEFT SIDE: Logo (Bulletproof redirection using direct onPress router) */}
-        <Pressable onPress={() => router.push('/')}>
-          <Image source={require('@/assets/images/logo.png')} style={styles.logo} resizeMode="contain" />
-        </Pressable>
-
         {/* RIGHT SIDE: Title and Back to site button */}
         <View style={StyleSheet.flatten([styles.headerRight, isMobile && styles.mobileHeaderRight])}>
-          <Text style={StyleSheet.flatten([styles.title, isMobile && styles.mobileTitle])}>לוח בקרה</Text>
-
-          {/* Direct onPress bypasses Expo Link cloning bugs on web browsers */}
           <Pressable style={styles.backBtn} onPress={() => router.push('/gallery')}>
             <Feather name="arrow-left" size={16} color="#94a3b8" style={{ marginLeft: 6 }} />
             <Text style={styles.backLinkText}>חזרה לאתר</Text>
           </Pressable>
+          <Text style={StyleSheet.flatten([styles.title, isMobile && styles.mobileTitle])}>לוח בקרה</Text>
+          {/* Direct onPress bypasses Expo Link cloning bugs on web browsers */}
         </View>
+        <Pressable onPress={() => router.push('/')}>
+          <Image source={require('@/assets/images/logo.png')} style={styles.logo} resizeMode="contain" />
+        </Pressable>
       </View>
+
+      {dbTokenMissing && (
+        <View style={styles.warningBanner}>
+          <Feather name="alert-circle" size={18} color="#ef4444" style={{ marginLeft: 8 }} />
+          <Text style={styles.warningBannerText}>
+            שים לב: משתנה הסביבה <Text style={{ fontWeight: 'bold' }}>BLOB_READ_WRITE_TOKEN</Text> אינו מוגדר ב-Vercel. האירועים והתמונות יישמרו בדפדפן המקומי שלך בלבד ולא יהיו זמינים לאורחים במכשירים אחרים. אנא הגדר את משתנה הסביבה בהגדרות הפרויקט ב-Vercel כדי להפעיל סנכרון ענן מלא.
+          </Text>
+        </View>
+      )}
 
       {/* Tabs Switcher */}
       <View style={StyleSheet.flatten([styles.tabsContainer, isMobile && styles.mobileTabsContainer])}>
@@ -280,7 +344,6 @@ export default function DashboardPage() {
           ])}
           onPress={() => setActiveTab('clients')}
         >
-          <Feather name="users" size={isMobile ? 14 : 18} color={activeTab === 'clients' ? '#fff' : '#94a3b8'} style={{ marginLeft: 6 }} />
           <Text style={[
             styles.tabBtnText,
             isMobile && styles.mobileTabBtnText,
@@ -288,6 +351,7 @@ export default function DashboardPage() {
           ]}>
             ניהול דפי לקוח
           </Text>
+          <Feather name="users" size={isMobile ? 14 : 18} color={activeTab === 'clients' ? '#fff' : '#94a3b8'} style={{ marginLeft: 6 }} />
         </Pressable>
 
         <Pressable
@@ -298,7 +362,6 @@ export default function DashboardPage() {
           ])}
           onPress={() => setActiveTab('gallery')}
         >
-          <Feather name="image" size={isMobile ? 14 : 18} color={activeTab === 'gallery' ? '#fff' : '#94a3b8'} style={{ marginLeft: 6 }} />
           <Text style={[
             styles.tabBtnText,
             isMobile && styles.mobileTabBtnText,
@@ -306,6 +369,7 @@ export default function DashboardPage() {
           ]}>
             גלריה ציבורית
           </Text>
+          <Feather name="image" size={isMobile ? 14 : 18} color={activeTab === 'gallery' ? '#fff' : '#94a3b8'} style={{ marginLeft: 6 }} />
         </Pressable>
 
         <Pressable
@@ -316,7 +380,6 @@ export default function DashboardPage() {
           ])}
           onPress={() => setActiveTab('calendar')}
         >
-          <Feather name="calendar" size={isMobile ? 14 : 18} color={activeTab === 'calendar' ? '#fff' : '#94a3b8'} style={{ marginLeft: 6 }} />
           <Text style={[
             styles.tabBtnText,
             isMobile && styles.mobileTabBtnText,
@@ -324,6 +387,7 @@ export default function DashboardPage() {
           ]}>
             יומן אירועים
           </Text>
+          <Feather name="calendar" size={isMobile ? 14 : 18} color={activeTab === 'calendar' ? '#fff' : '#94a3b8'} style={{ marginLeft: 6 }} />
         </Pressable>
       </View>
 
@@ -460,7 +524,7 @@ export default function DashboardPage() {
                 <Text style={styles.label}>קוד גישה לאורחים (חובה)</Text>
                 <TextInput
                   style={styles.formInput}
-                  placeholder="לדוגמה: 1234"
+                  placeholder="ניתן להשתמש במספרים ואותיות"
                   placeholderTextColor="#64748b"
                   value={eventCode}
                   onChangeText={setEventCode}
@@ -570,14 +634,68 @@ export default function DashboardPage() {
                 )}
               </TouchableOpacity>
 
-              <Text style={styles.label}>קטגוריית גלריה ציבורית</Text>
-              <TextInput
-                style={styles.input}
-                value={galleryCategory}
-                onChangeText={setGalleryCategory}
-                placeholder="קטגוריה (לדוגמה: #חתונה)"
-                placeholderTextColor="#64748b"
-              />
+              <Text style={styles.label}>קטגוריית גלריה ציבורית (בחר או הוסף חדשה)</Text>
+              <View style={{ position: 'relative', width: '100%', zIndex: 9999 }}>
+                <Pressable 
+                  style={styles.dropdownTrigger}
+                  onPress={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                >
+                  <Text style={styles.dropdownTriggerText}>{galleryCategory}</Text>
+                  <Feather name={showCategoryDropdown ? "chevron-up" : "chevron-down"} size={16} color="#94a3b8" />
+                </Pressable>
+
+                {showCategoryDropdown && (
+                  <View style={styles.dropdownMenu}>
+                    <ScrollView 
+                      style={{ maxHeight: 180 }}
+                      nestedScrollEnabled={true}
+                      showsVerticalScrollIndicator={true}
+                    >
+                      {categoriesList.map((cat) => (
+                        <Pressable
+                          key={cat}
+                          style={[
+                            styles.dropdownItem,
+                            galleryCategory === cat && styles.dropdownItemActive
+                          ]}
+                          onPress={() => {
+                            setGalleryCategory(cat);
+                            setShowCategoryDropdown(false);
+                          }}
+                        >
+                          <Text style={[
+                            styles.dropdownItemText,
+                            galleryCategory === cat && styles.dropdownItemTextActive
+                          ]}>
+                            {cat}
+                          </Text>
+                          {galleryCategory === cat && (
+                            <Feather name="check" size={14} color="#3b82f6" />
+                          )}
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+
+                    {/* Add Custom Category Row */}
+                    <View style={styles.dropdownInputRow}>
+                      <TextInput
+                        style={styles.dropdownNewInput}
+                        value={newCategoryText}
+                        onChangeText={setNewCategoryText}
+                        placeholder="קטגוריה חדשה..."
+                        placeholderTextColor="#64748b"
+                        onSubmitEditing={handleAddNewCategory}
+                      />
+                      <Pressable 
+                        style={styles.dropdownAddBtn}
+                        onPress={handleAddNewCategory}
+                      >
+                        <Feather name="plus" size={14} color="#fff" />
+                      </Pressable>
+                    </View>
+                  </View>
+                )}
+              </View>
 
               <TouchableOpacity
                 style={[styles.uploadBtn, (!selectedImage || isUploading) && styles.uploadBtnDisabled]}
@@ -595,6 +713,13 @@ export default function DashboardPage() {
                   <View key={img.id} style={StyleSheet.flatten([styles.gridItem, isMobile && styles.mobileGridItem])}>
                     <Image source={{ uri: img.uri }} style={styles.gridImage} />
                     <Text style={styles.gridCat}>{img.category}</Text>
+                    
+                    <Pressable
+                      style={styles.galleryDeleteBtn}
+                      onPress={() => handleDeleteGalleryClick(img.id)}
+                    >
+                      <Feather name="trash-2" size={14} color="#fff" />
+                    </Pressable>
                   </View>
                 ))}
               </View>
@@ -1164,6 +1289,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.06)',
     marginBottom: 32,
+    zIndex: 1000,
   },
   sectionTitle: {
     fontSize: 18,
@@ -1233,6 +1359,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.05)',
+    position: 'relative',
   },
   mobileGridItem: {
     width: '46%', // 2 columns on mobile
@@ -1246,6 +1373,96 @@ const styles = StyleSheet.create({
     padding: 8,
     textAlign: 'center',
     fontSize: 12,
+  },
+  galleryDeleteBtn: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(239, 68, 68, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  dropdownTrigger: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    padding: 14,
+    borderRadius: 8,
+    marginBottom: 20,
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dropdownTriggerText: {
+    color: '#fff',
+    fontSize: 14,
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: '#1e293b',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 8,
+    marginTop: -16,
+    zIndex: 100,
+  },
+  dropdownItem: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  dropdownItemActive: {
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+  },
+  dropdownItemText: {
+    color: '#cbd5e1',
+    fontSize: 14,
+  },
+  dropdownItemTextActive: {
+    color: '#3b82f6',
+    fontWeight: 'bold',
+  },
+  dropdownInputRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    padding: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.08)',
+    gap: 8,
+    backgroundColor: '#111827',
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+  },
+  dropdownNewInput: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 6,
+    color: '#fff',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    fontSize: 13,
+    textAlign: 'right',
+  },
+  dropdownAddBtn: {
+    backgroundColor: '#3b82f6',
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   // Calendar styles
@@ -1411,5 +1628,24 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 13,
     fontWeight: 'bold',
+  },
+  warningBanner: {
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(239, 68, 68, 0.18)',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  warningBannerText: {
+    color: '#f87171',
+    fontSize: 13,
+    textAlign: 'right',
+    fontFamily: 'Google Sans, sans-serif',
+    lineHeight: 18,
+    flex: 1,
   }
 });

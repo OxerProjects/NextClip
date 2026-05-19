@@ -1,6 +1,7 @@
 import { Colors } from '@/constants/theme';
 import { ClientEvent, getClientEvents } from '@/utils/storage';
 import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, Modal } from 'react-native';
@@ -165,6 +166,20 @@ export default function ClientEventScreen() {
       >
         {/* Dynamic Private Banner */}
         <View style={StyleSheet.flatten([styles.banner, isMobile && styles.mobileBanner])}>
+          {event.images.length > 0 && event.images[0] && (
+            <>
+              <Image 
+                source={{ uri: event.images[0] }} 
+                style={styles.bannerBgImage} 
+                resizeMode="cover" 
+              />
+              <LinearGradient
+                colors={['rgba(15, 23, 42, 0.25)', 'rgba(15, 23, 42, 0.8)', Colors.dark.background]}
+                style={styles.bannerBgOverlay}
+              />
+            </>
+          )}
+
           {/* Logo on the top left */}
           <Link href="/" asChild>
             <Pressable style={StyleSheet.flatten([styles.topLogoBtn, isMobile && styles.mobileTopLogoBtn])}>
@@ -451,6 +466,14 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(255,255,255,0.06)',
     alignItems: 'center',
     position: 'relative',
+    overflow: 'hidden',
+  },
+  bannerBgImage: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.2,
+  },
+  bannerBgOverlay: {
+    ...StyleSheet.absoluteFillObject,
   },
   mobileBanner: {
     paddingTop: 80,

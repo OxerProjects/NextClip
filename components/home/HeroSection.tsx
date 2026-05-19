@@ -97,7 +97,7 @@ export function HeroSection({ scrollY }: { scrollY?: SharedValue<number> }) {
   const arrowStyle = useAnimatedStyle(() => {
     const y = scrollY?.value || 0;
     // Arrow remains visible all along the first section scrolling model sequence, fading out at the end
-    const opacity = interpolate(y, [3600, 4000], [1, 0], Extrapolate.CLAMP);
+    const opacity = interpolate(y, [5200, 5800], [1, 0], Extrapolate.CLAMP);
     return {
       opacity,
       transform: [{ translateY: bobAnim.value }],

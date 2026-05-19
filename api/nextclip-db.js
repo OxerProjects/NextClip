@@ -1,6 +1,6 @@
-import { put, list, del } from '@vercel/blob';
+const { put, list, del } = require('@vercel/blob');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // Enable CORS so the app can communicate with the serverless function from anywhere
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -53,9 +53,45 @@ export default async function handler(req, res) {
         });
         return res.status(200).json({ success: true, url: blob.url });
       }
+
+      // 3. Action: Save Public Gallery Array (JSON Database)
+      if (action === 'save_gallery' && data) {
+        try {
+          const { blobs } = await list({ prefix: 'database/gallery.json', token });
+          for (const oldBlob of blobs) {
+            await del(oldBlob.url, { token });
+          }
+        } catch (e) {
+          console.log('No existing gallery db file to clean up');
+        }
+
+        const blob = await put('database/gallery.json', JSON.stringify(data), {
+          access: 'public',
+          contentType: 'application/json',
+          addRandomSuffix: false,
+          token,
+        });
+        return res.status(200).json({ success: true, url: blob.url });
+      }
     }
 
-    // 3. Action: Get Events Array (JSON Database)
+    // 4. Action: Get Public Gallery Database
+    if (action === 'get_gallery') {
+      try {
+        const { blobs } = await list({ prefix: 'database/gallery.json', token });
+        if (blobs.length > 0) {
+          const dbUrl = blobs[0].url;
+          const response = await fetch(`${dbUrl}?t=${Date.now()}`);
+          const gallery = await response.json();
+          return res.status(200).json(gallery);
+        }
+      } catch (err) {
+        console.error('Failed to read gallery database file', err);
+      }
+      return res.status(200).json([]);
+    }
+
+    // 5. Action: Get Events Array (JSON Database)
     if (action === 'get_events' || req.method === 'GET') {
       try {
         const { blobs } = await list({ prefix: 'database/events.json', token });
@@ -76,4 +112,4 @@ export default async function handler(req, res) {
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
-}
+};

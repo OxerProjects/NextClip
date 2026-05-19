@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, useWindowDimensions, Platform, Pressable } from 'react-native';
 import { Colors } from '@/constants/theme';
 import { Link } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Image, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 const SERVICES_DATA = [
   {
     id: 1,
     title: 'מגנטים',
     text: 'לכל תמונה יפה מגיעה איכות מקסימלית! כל מגנט מעוצב באופן אישי לבחירתכם ולפי סגנון האירוע. על החומרים שלנו אנחנו לא מתפשרים על מנת לקבל תוצאה של מזכרת מעוצבת, יוקרתית ועמידה – בדיוק כמו הרגעים שהיא מתעדת.',
-    image: 'https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?q=80&w=600',
+    image: '/magnets.png',
     isProminent: false,
     price: '1,190',
   },
@@ -16,7 +16,7 @@ const SERVICES_DATA = [
     id: 2,
     title: 'עמדת צילום AI',
     text: 'אצלנו לא מדובר בעוד עמדת צילום משעממת, העמדה שלנו היא אטרקציה שלא רואים באף אירוע אחר!\n\nבחירת מגוון עצום של אפקטים מיוחדים של AI, ותוספות מיוחדות (כמו: שטיח אדום, עמודי חבלול, חצובות תאורה, מראה מעוצבת עם שמות המתחתנים), הופכים את העמדה שלנו לאטרקציה יפה, מחמיאה, ומזמינה שהאורחים לא שוכחים.',
-    image: require('@/assets/images/emda1.png'),
+    image: '/main.png',
     isProminent: true,
     badgeText: 'הבחירה הפופולרית',
     price: '1,890',
@@ -25,7 +25,7 @@ const SERVICES_DATA = [
     id: 3,
     title: 'צילום סטילס',
     text: 'צלמים מקצועיים שיתפסו את כל הרגעים החשובים באירוע שלכם, החיוכים, ההתרגשות, הקסם של האירוע שלכם והכל, בצורה הכי מחמיאה ויפה שיש.',
-    image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=600',
+    image: '/service1.png',
     isProminent: false,
     price: '1,490',
   }
@@ -87,7 +87,7 @@ export function ServicesSection() {
     <View style={StyleSheet.flatten([styles.container, isMobile && styles.mobileContainer])}>
       {/* Title */}
       <Text style={StyleSheet.flatten([styles.mainTitle, isMobile && styles.mobileMainTitle])}>השירותים שלנו</Text>
-      
+
       <View style={StyleSheet.flatten([styles.grid, isMobile && styles.mobileGrid])}>
         {SERVICES_DATA.map((item, index) => {
           const isHovered = hoveredCard === index;
@@ -122,13 +122,13 @@ export function ServicesSection() {
               {...(Platform.OS === 'web' ? { className: cardClasses } : {})}
             >
               {item.isProminent && Platform.OS === 'web' && (
-                <View 
+                <View
                   style={StyleSheet.absoluteFillObject}
                   {...(Platform.OS === 'web' ? { className: 'service-glow-overlay' } : {})}
                   pointerEvents="none"
                 />
               )}
-              
+
               <View style={StyleSheet.flatten([styles.imageWrapper, item.isProminent && styles.prominentImageWrapper, isMobile && styles.mobileImageWrapper])}>
                 <Image
                   source={imageSrc}
@@ -141,7 +141,7 @@ export function ServicesSection() {
                   </View>
                 )}
               </View>
-              
+
               <View style={StyleSheet.flatten([styles.cardContent, isMobile && styles.mobileCardContent])}>
                 <Text style={StyleSheet.flatten([styles.cardTitle, item.isProminent && styles.prominentTitle, isMobile && styles.mobileCardTitle])}>
                   {item.title}
@@ -152,7 +152,7 @@ export function ServicesSection() {
 
                 {/* Footer Row: Align Button and Price next to each other */}
                 <View style={StyleSheet.flatten([styles.footerRow, isMobile && styles.mobileFooterRow])}>
-                  
+
                   {/* Price Block */}
                   <View style={StyleSheet.flatten([styles.priceBlock, isMobile && styles.mobilePriceBlock])}>
                     <Text style={styles.priceLabel}>החל מ-</Text>
