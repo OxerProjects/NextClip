@@ -1,10 +1,10 @@
 import { Colors } from '@/constants/theme';
 import { GalleryImage, getGalleryImages, GRID_TOTAL_WIDTH } from '@/utils/storage';
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome, Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link } from 'expo-router';
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { Animated, Dimensions, Image, PanResponder, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, DeviceEventEmitter, Dimensions, Image, PanResponder, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const IMG_WIDTH = 300;
@@ -17,6 +17,17 @@ export default function GalleryPage() {
   const [categories, setCategories] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [selectedLightboxImage, setSelectedLightboxImage] = useState<GalleryImage | null>(null);
+
+  const openLightbox = (img: GalleryImage) => {
+    setSelectedLightboxImage(img);
+    DeviceEventEmitter.emit('lightboxOpen', true);
+  };
+
+  const closeLightbox = () => {
+    setSelectedLightboxImage(null);
+    DeviceEventEmitter.emit('lightboxOpen', false);
+  };
 
   // Refs for high-performance direct DOM manipulation on Web
   const containerRef = useRef<any>(null);
@@ -463,18 +474,31 @@ export default function GalleryPage() {
                 const colH = dynamicHeights[img.col] || maxGridHeight;
                 const top = img.row_y + ty * (colH - maxGridHeight);
                 return (
-                  <Image
+                  <TouchableOpacity
                     key={`${img.id}-${tileIdx}`}
-                    source={{ uri: img.uri }}
+                    activeOpacity={0.9}
+                    onPress={() => {
+                      // Prevent click if we were dragging fast
+                      if (Math.abs(velocityRef.current.x) > 1 || Math.abs(velocityRef.current.y) > 1) return;
+                      openLightbox(img);
+                    }}
                     style={{
                       position: 'absolute',
                       left,
                       top,
                       width: img.width,
                       height: img.height,
-                      borderRadius: 6,
                     }}
-                  />
+                  >
+                    <Image
+                      source={{ uri: img.uri }}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        borderRadius: 6,
+                      }}
+                    />
+                  </TouchableOpacity>
                 );
               })}
             </View>
@@ -523,6 +547,23 @@ export default function GalleryPage() {
           <FontAwesome name="crosshairs" size={18} color="#fff" />
         </TouchableOpacity>
       </View>
+
+      {/* Lightbox Modal */}
+      {selectedLightboxImage && (
+        <View style={styles.lightboxOverlay}>
+          <TouchableOpacity 
+            style={styles.lightboxClose} 
+            onPress={closeLightbox}
+          >
+            <Feather name="x" size={22} color="#fff" />
+          </TouchableOpacity>
+          <Image 
+            source={{ uri: selectedLightboxImage.uri }} 
+            style={styles.lightboxImage} 
+            resizeMode="contain" 
+          />
+        </View>
+      )}
 
     </View>
   );
@@ -612,5 +653,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)',
+  },
+  lightboxOverlay: {
+    position: Platform.OS === 'web' ? 'fixed' as any : 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    zIndex: 99999,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  lightboxClose: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    zIndex: 100000,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  lightboxImage: {
+    width: '90%',
+    height: '90%',
   },
 });

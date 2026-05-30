@@ -14,6 +14,7 @@ export function Header() {
   const [showCta, setShowCta] = useState(!isHome);
   const [isScrolled, setIsScrolled] = useState(!isHome);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   // Animation values
   const animValue = useRef(new Animated.Value(0)).current;
@@ -111,10 +112,18 @@ export function Header() {
     }
   }, []);
 
+  // Listen for lightbox open/close events from gallery
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('lightboxOpen', (isOpen: boolean) => {
+      setLightboxOpen(isOpen);
+    });
+    return () => sub.remove();
+  }, []);
+
   // Hide header on login, client private events, admin dashboard, and booking page
   // Placing this check AFTER all hook declarations ensures strict hook ordering
   const hideHeaderRoutes = ['/login', '/client-event', '/dashboard', '/booking'];
-  if (hideHeaderRoutes.includes(pathname)) {
+  if (hideHeaderRoutes.includes(pathname) || lightboxOpen) {
     return null;
   }
 
