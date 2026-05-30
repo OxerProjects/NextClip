@@ -1,18 +1,19 @@
 import { Colors } from '@/constants/theme';
-import { ClientEvent, deleteClientEvent, deleteGalleryImage, GalleryImage, getClientEvents, getGalleryImages, saveClientEvent, saveGalleryImage } from '@/utils/storage';
+import { ClientEvent, deleteClientEvent, deleteGalleryImage, GalleryImage, getClientEvents, getGalleryImages, saveClientEvent, saveGalleryImage, getLeads, getBookings, ContactLead, BookingLead, saveBooking } from '@/utils/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
-type ActiveTab = 'clients' | 'gallery' | 'calendar';
+type ActiveTab = 'clients' | 'gallery' | 'calendar' | 'leads';
 
 export default function DashboardPage() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
+  const isSmallMobile = width < 480;
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('clients');
 
@@ -44,16 +45,33 @@ export default function DashboardPage() {
   const [isUploading, setIsUploading] = useState(false);
 
   // --- CALENDAR STATES ---
-  const [currentMonth, setCurrentMonth] = useState('מאי 2026');
-  const [selectedDay, setSelectedDay] = useState<number | null>(19);
-  const [bookings, setBookings] = useState<{ [day: number]: { title: string; time: string; type: string }[] }>({
-    19: [{ title: 'החתונה של יובל ועדי', time: '19:30', type: 'חתונה' }],
-    24: [{ title: 'בר המצווה של נועם', time: '18:00', type: 'בר מצווה' }],
-    28: [{ title: 'אירוע חברה - חברת Waze', time: '20:00', type: 'אירוע עסקי' }],
-  });
+  const [calendarDate, setCalendarDate] = useState(() => new Date());
+  const [selectedDay, setSelectedDay] = useState<number | null>(new Date().getDate());
+  const [realBookings, setRealBookings] = useState<BookingLead[]>([]);
+  const [leads, setLeads] = useState<ContactLead[]>([]);
   const [newBookingTitle, setNewBookingTitle] = useState('');
   const [newBookingTime, setNewBookingTime] = useState('');
   const [dbTokenMissing, setDbTokenMissing] = useState(false);
+
+  // --- CALENDAR HELPERS ---
+  const hebrewMonths = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+  const calYear = calendarDate.getFullYear();
+  const calMonth = calendarDate.getMonth();
+  const currentMonthLabel = `${hebrewMonths[calMonth]} ${calYear}`;
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const firstDayOfWeek = new Date(calYear, calMonth, 1).getDay(); // 0=Sun(א)
+
+  const handlePrevMonth = () => {
+    setCalendarDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+    setSelectedDay(null);
+  };
+  const handleNextMonth = () => {
+    setCalendarDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+    setSelectedDay(null);
+  };
+
+  const formatDStr = (day: number) =>
+    `${calYear}-${(calMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -160,6 +178,12 @@ export default function DashboardPage() {
 
     const events = await getClientEvents();
     setClientEvents(events);
+
+    const dbLeads = await getLeads();
+    setLeads(dbLeads);
+
+    const dbBookings = await getBookings();
+    setRealBookings(dbBookings);
   };
 
   // --- CLIENT EVENT HANDLERS ---
@@ -300,19 +324,42 @@ export default function DashboardPage() {
   };
 
   // --- CALENDAR HANDLERS ---
-  const handleAddBooking = () => {
+  const handleAddBooking = async () => {
     if (!selectedDay || !newBookingTitle.trim() || !newBookingTime.trim()) {
       alert('אנא מלא את כל פרטי האירוע');
       return;
     }
-    const dayBookings = bookings[selectedDay] || [];
-    const updated = {
-      ...bookings,
-      [selectedDay]: [...dayBookings, { title: newBookingTitle.trim(), time: newBookingTime.trim(), type: 'אירוע חדש' }]
-    };
-    setBookings(updated);
+    await saveBooking({
+      dateStr: formatDStr(selectedDay),
+      name: newBookingTitle.trim(),
+      phone: '', email: '', eventType: 'ידני', notes: '',
+      startTime: newBookingTime.trim(), endTime: '', guests: 0,
+      services: [], totalPrice: 0, status: 'confirmed'
+    });
     setNewBookingTitle('');
     setNewBookingTime('');
+    loadAllData();
+  };
+
+  const handleBlockDate = async () => {
+    if (!selectedDay) return;
+    await saveBooking({
+      dateStr: formatDStr(selectedDay),
+      name: 'חסום', phone: '', email: '', eventType: 'חסום',
+      notes: '', startTime: '', endTime: '', guests: 0,
+      services: [], totalPrice: 0, status: 'blocked'
+    });
+    loadAllData();
+  };
+
+  const handleUnblockDate = async (b: BookingLead) => {
+    await saveBooking({ ...b, status: 'pending' });
+    loadAllData();
+  };
+
+  const handleUpdateBookingStatus = async (b: BookingLead, newStatus: string) => {
+    await saveBooking({ ...b, status: newStatus as any });
+    loadAllData();
   };
 
   return (
@@ -345,59 +392,39 @@ export default function DashboardPage() {
 
       {/* Tabs Switcher */}
       <View style={StyleSheet.flatten([styles.tabsContainer, isMobile && styles.mobileTabsContainer])}>
-        <Pressable
-          style={StyleSheet.flatten([
-            styles.tabBtn,
-            isMobile && styles.mobileTabBtn,
-            activeTab === 'clients' && styles.activeTabBtn
-          ])}
-          onPress={() => setActiveTab('clients')}
-        >
-          <Text style={[
-            styles.tabBtnText,
-            isMobile && styles.mobileTabBtnText,
-            activeTab === 'clients' && styles.activeTabBtnText
-          ]}>
-            ניהול דפי לקוח
-          </Text>
-          <Feather name="users" size={isMobile ? 14 : 18} color={activeTab === 'clients' ? '#fff' : '#94a3b8'} style={{ marginLeft: 6 }} />
-        </Pressable>
-
-        <Pressable
-          style={StyleSheet.flatten([
-            styles.tabBtn,
-            isMobile && styles.mobileTabBtn,
-            activeTab === 'gallery' && styles.activeTabBtn
-          ])}
-          onPress={() => setActiveTab('gallery')}
-        >
-          <Text style={[
-            styles.tabBtnText,
-            isMobile && styles.mobileTabBtnText,
-            activeTab === 'gallery' && styles.activeTabBtnText
-          ]}>
-            גלריה ציבורית
-          </Text>
-          <Feather name="image" size={isMobile ? 14 : 18} color={activeTab === 'gallery' ? '#fff' : '#94a3b8'} style={{ marginLeft: 6 }} />
-        </Pressable>
-
-        <Pressable
-          style={StyleSheet.flatten([
-            styles.tabBtn,
-            isMobile && styles.mobileTabBtn,
-            activeTab === 'calendar' && styles.activeTabBtn
-          ])}
-          onPress={() => setActiveTab('calendar')}
-        >
-          <Text style={[
-            styles.tabBtnText,
-            isMobile && styles.mobileTabBtnText,
-            activeTab === 'calendar' && styles.activeTabBtnText
-          ]}>
-            יומן אירועים
-          </Text>
-          <Feather name="calendar" size={isMobile ? 14 : 18} color={activeTab === 'calendar' ? '#fff' : '#94a3b8'} style={{ marginLeft: 6 }} />
-        </Pressable>
+        {([
+          { key: 'clients', label: 'ניהול דפי לקוח', icon: 'users' },
+          { key: 'gallery', label: 'גלריה ציבורית', icon: 'image' },
+          { key: 'calendar', label: 'יומן אירועים', icon: 'calendar' },
+          { key: 'leads', label: 'לידים והזמנות', icon: 'bell' },
+        ] as const).map(tab => (
+          <Pressable
+            key={tab.key}
+            style={StyleSheet.flatten([
+              styles.tabBtn,
+              isMobile && styles.mobileTabBtn,
+              isSmallMobile && styles.smallMobileTabBtn,
+              activeTab === tab.key && styles.activeTabBtn
+            ])}
+            onPress={() => setActiveTab(tab.key)}
+          >
+            {!isSmallMobile && (
+              <Text style={[
+                styles.tabBtnText,
+                isMobile && styles.mobileTabBtnText,
+                activeTab === tab.key && styles.activeTabBtnText
+              ]}>
+                {tab.label}
+              </Text>
+            )}
+            <Feather
+              name={tab.icon}
+              size={isSmallMobile ? 18 : isMobile ? 14 : 18}
+              color={activeTab === tab.key ? '#fff' : '#94a3b8'}
+              style={!isSmallMobile ? { marginLeft: 6 } : undefined}
+            />
+          </Pressable>
+        ))}
       </View>
 
       <ScrollView style={styles.scrollBody} contentContainerStyle={styles.scrollContent}>
@@ -747,10 +774,14 @@ export default function DashboardPage() {
               {/* Calendar grid view */}
               <View style={StyleSheet.flatten([styles.calendarCard, isMobile && styles.mobileCalendarCard])}>
                 <View style={styles.calendarHeader}>
-                  <Text style={styles.calendarMonthText}>{currentMonth}</Text>
+                  <Text style={styles.calendarMonthText}>{currentMonthLabel}</Text>
                   <View style={{ flexDirection: 'row', gap: 12 }}>
-                    <Feather name="chevron-left" size={20} color="#fff" />
-                    <Feather name="chevron-right" size={20} color="#fff" />
+                    <Pressable onPress={handleNextMonth} style={{ padding: 4 }}>
+                      <Feather name="chevron-left" size={20} color="#fff" />
+                    </Pressable>
+                    <Pressable onPress={handlePrevMonth} style={{ padding: 4 }}>
+                      <Feather name="chevron-right" size={20} color="#fff" />
+                    </Pressable>
                   </View>
                 </View>
 
@@ -763,29 +794,39 @@ export default function DashboardPage() {
 
                 {/* Calendar grid */}
                 <View style={styles.calendarGrid}>
-                  {Array.from({ length: 31 }, (_, i) => {
+                  {/* Empty offset cells to align day 1 to correct weekday */}
+                  {Array.from({ length: firstDayOfWeek }, (_, i) => (
+                    <View key={`empty-${i}`} style={styles.calendarDayCell} />
+                  ))}
+                  {Array.from({ length: daysInMonth }, (_, i) => {
                     const dayNum = i + 1;
-                    const hasEvents = bookings[dayNum] && bookings[dayNum].length > 0;
+                    const dStr = formatDStr(dayNum);
+                    const dayBookings = realBookings.filter(b => b.dateStr === dStr);
+                    const hasEvents = dayBookings.length > 0;
+                    const isBlocked = dayBookings.some(b => b.status === 'blocked');
+                    const isConfirmed = dayBookings.some(b => b.status === 'confirmed');
                     return (
                       <Pressable
                         key={dayNum}
                         style={[
                           styles.calendarDayCell,
                           selectedDay === dayNum && styles.selectedDayCell,
-                          hasEvents && styles.eventDayCell
+                          isBlocked && styles.blockedDayCell,
+                          isConfirmed && !isBlocked && styles.eventDayCell,
+                          hasEvents && !isBlocked && !isConfirmed && styles.eventDayCell
                         ]}
                         onPress={() => setSelectedDay(dayNum)}
                       >
                         <Text style={[
                           styles.calendarDayNumText,
                           selectedDay === dayNum && styles.selectedDayNumText,
-                          hasEvents && styles.eventDayNumText
+                          isBlocked && styles.blockedDayNumText,
+                          (isConfirmed || hasEvents) && !isBlocked && styles.eventDayNumText
                         ]}>
                           {dayNum}
                         </Text>
-                        {hasEvents && (
-                          <View style={styles.calendarDot} />
-                        )}
+                        {isBlocked && <View style={styles.blockedDot} />}
+                        {hasEvents && !isBlocked && <View style={styles.calendarDot} />}
                       </Pressable>
                     );
                   })}
@@ -794,49 +835,102 @@ export default function DashboardPage() {
 
               {/* Bookings panel */}
               <View style={styles.bookingsPanel}>
-                <Text style={styles.bookingsPanelTitle}>אירועים ליום {selectedDay} במאי:</Text>
+                <Text style={styles.bookingsPanelTitle}>אירועים ליום {selectedDay} ב{hebrewMonths[calMonth]}:</Text>
 
-                {(!selectedDay || !bookings[selectedDay] || bookings[selectedDay].length === 0) ? (
-                  <Text style={styles.emptyBookingsText}>אין אירועים משוריינים ליום זה</Text>
-                ) : (
-                  bookings[selectedDay].map((b, idx) => (
-                    <View key={idx} style={styles.bookingItem}>
-                      <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                        <Text style={styles.bookingItemTitle}>{b.title}</Text>
-                        <Text style={styles.bookingItemTime}>{b.time} | {b.type}</Text>
+                {(() => {
+                  if (!selectedDay) return <Text style={styles.emptyBookingsText}>בחר יום מהיומן</Text>;
+                  const dStr = formatDStr(selectedDay);
+                  const dayBookings = realBookings.filter(b => b.dateStr === dStr);
+                  const isDateBlocked = dayBookings.some(b => b.status === 'blocked');
+                  return (
+                    <>
+                      {dayBookings.length === 0 ? (
+                        <Text style={styles.emptyBookingsText}>אין אירועים משוריינים ליום זה</Text>
+                      ) : (
+                        dayBookings.map((b, idx) => (
+                          <View key={b.id || idx} style={styles.bookingItem}>
+                            <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                              <Text style={styles.bookingItemTitle}>{b.name} - {b.eventType} ({b.status === 'blocked' ? 'חסום' : b.status === 'confirmed' ? 'מאושר' : 'ממתין'})</Text>
+                              {b.startTime ? <Text style={styles.bookingItemTime}>{b.startTime}{b.phone ? ` - ${b.phone}` : ''}</Text> : null}
+                              <View style={{ flexDirection: 'row', gap: 12, marginTop: 10 }}>
+                                {b.status !== 'confirmed' && (
+                                  <TouchableOpacity onPress={() => handleUpdateBookingStatus(b, 'confirmed')}><Text style={{color: '#10b981', fontWeight: 'bold'}}>אשר אירוע</Text></TouchableOpacity>
+                                )}
+                                {b.status !== 'blocked' && (
+                                  <TouchableOpacity onPress={() => handleUpdateBookingStatus(b, 'blocked')}><Text style={{color: '#f43f5e', fontWeight: 'bold'}}>חסום תאריך</Text></TouchableOpacity>
+                                )}
+                                {b.status === 'blocked' && (
+                                  <TouchableOpacity onPress={() => handleUnblockDate(b)}><Text style={{color: '#f59e0b', fontWeight: 'bold'}}>בטל חסימה</Text></TouchableOpacity>
+                                )}
+                                {b.status !== 'pending' && b.status !== 'blocked' && (
+                                  <TouchableOpacity onPress={() => handleUpdateBookingStatus(b, 'pending')}><Text style={{color: '#9ca3af', fontWeight: 'bold'}}>הפוך לממתין</Text></TouchableOpacity>
+                                )}
+                              </View>
+                            </View>
+                            <Feather name="clock" size={16} color={b.status === 'blocked' ? '#f43f5e' : b.status === 'confirmed' ? '#10b981' : '#3b82f6'} style={{ marginRight: 12 }} />
+                          </View>
+                        ))
+                      )}
+
+                      {/* Quick block / unblock button */}
+                      {!isDateBlocked ? (
+                        <Pressable style={styles.blockDateBtn} onPress={handleBlockDate}>
+                          <Feather name="lock" size={14} color="#fff" style={{ marginLeft: 6 }} />
+                          <Text style={styles.blockDateBtnText}>חסום תאריך זה</Text>
+                        </Pressable>
+                      ) : null}
+
+                      {/* Add new booking */}
+                      <View style={styles.addBookingBox}>
+                        <Text style={styles.addBookingTitle}>שריין אירוע חדש ליום זה</Text>
+
+                        <TextInput
+                          style={styles.addBookingInput}
+                          placeholder="שם האירוע / המזמין"
+                          placeholderTextColor="#64748b"
+                          value={newBookingTitle}
+                          onChangeText={setNewBookingTitle}
+                        />
+
+                        <TextInput
+                          style={styles.addBookingInput}
+                          placeholder="שעה (לדוגמה: 19:00)"
+                          placeholderTextColor="#64748b"
+                          value={newBookingTime}
+                          onChangeText={setNewBookingTime}
+                        />
+
+                        <Pressable style={styles.addBookingBtn} onPress={handleAddBooking}>
+                          <Text style={styles.addBookingBtnText}>שריין תאריך במערכת</Text>
+                        </Pressable>
                       </View>
-                      <Feather name="clock" size={16} color="#3b82f6" style={{ marginRight: 12 }} />
-                    </View>
-                  ))
-                )}
-
-                {/* Add Mock booking */}
-                <View style={styles.addBookingBox}>
-                  <Text style={styles.addBookingTitle}>שריין אירוע חדש ליום זה</Text>
-
-                  <TextInput
-                    style={styles.addBookingInput}
-                    placeholder="שם האירוע / המזמין"
-                    placeholderTextColor="#64748b"
-                    value={newBookingTitle}
-                    onChangeText={setNewBookingTitle}
-                  />
-
-                  <TextInput
-                    style={styles.addBookingInput}
-                    placeholder="שעה (לדוגמה: 19:00)"
-                    placeholderTextColor="#64748b"
-                    value={newBookingTime}
-                    onChangeText={setNewBookingTime}
-                  />
-
-                  <Pressable style={styles.addBookingBtn} onPress={handleAddBooking}>
-                    <Text style={styles.addBookingBtnText}>שריין תאריך במערכת</Text>
-                  </Pressable>
-                </View>
+                    </>
+                  );
+                })()}
               </View>
 
             </View>
+          </View>
+        )}
+
+        {/* ================= TAB 4: LEADS ================= */}
+        {activeTab === 'leads' && (
+          <View style={StyleSheet.flatten([styles.tabContent, isMobile && styles.mobileTabContent])}>
+            <Text style={styles.sectionMainTitle}>לידים מצור קשר</Text>
+            {leads.length === 0 ? (
+              <Text style={styles.emptyText}>אין לידים חדשים</Text>
+            ) : (
+              leads.map(lead => (
+                <View key={lead.id} style={styles.bookingItem}>
+                  <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                    <Text style={styles.bookingItemTitle}>{lead.name} | {lead.phone}</Text>
+                    <Text style={styles.bookingItemTime}>{lead.email}</Text>
+                    <Text style={styles.bookingItemTime}>{lead.message}</Text>
+                    <Text style={{color: '#9ca3af', fontSize: 10, marginTop: 4}}>{new Date(lead.date).toLocaleString()}</Text>
+                  </View>
+                </View>
+              ))
+            )}
           </View>
         )}
 
@@ -849,10 +943,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.dark.background,
+    ...(Platform.OS === 'web' ? {
+      height: '100vh' as any,
+      maxHeight: '100vh' as any,
+      overflow: 'hidden' as any,
+      display: 'flex' as any,
+      flexDirection: 'column' as any,
+    } : {}),
   },
   header: {
-    paddingTop: 40,
-    paddingBottom: 24,
+    paddingTop: 12,
+    paddingBottom: 12,
     paddingHorizontal: 40,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.06)',
@@ -862,9 +963,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.4)',
   },
   mobileHeader: {
-    paddingTop: 24,
+    paddingTop: 10,
     paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingBottom: 10,
   },
   title: {
     fontSize: 24,
@@ -914,9 +1015,9 @@ const styles = StyleSheet.create({
   },
   mobileTabsContainer: {
     flexDirection: 'row-reverse',
-    flexWrap: 'wrap',
-    paddingHorizontal: 12,
-    gap: 8,
+    flexWrap: 'nowrap',
+    paddingHorizontal: 8,
+    gap: 6,
     justifyContent: 'center',
   },
   tabBtn: {
@@ -932,6 +1033,13 @@ const styles = StyleSheet.create({
   mobileTabBtn: {
     paddingHorizontal: 10,
     paddingVertical: 6,
+  },
+  smallMobileTabBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   tabBtnText: {
     color: '#94a3b8',
@@ -951,6 +1059,10 @@ const styles = StyleSheet.create({
   },
   scrollBody: {
     flex: 1,
+    ...(Platform.OS === 'web' ? {
+      overflow: 'auto' as any,
+      height: '100%' as any,
+    } : {}),
   },
   scrollContent: {
     paddingBottom: 80,
@@ -958,6 +1070,7 @@ const styles = StyleSheet.create({
   tabContent: {
     paddingHorizontal: 40,
     paddingTop: 32,
+    paddingBottom: 40,
     maxWidth: 1200,
     width: '100%',
     alignSelf: 'center',
@@ -965,6 +1078,7 @@ const styles = StyleSheet.create({
   mobileTabContent: {
     paddingHorizontal: 16,
     paddingTop: 20,
+    paddingBottom: 40,
   },
   sectionHeaderRow: {
     flexDirection: 'row-reverse',
@@ -1516,23 +1630,22 @@ const styles = StyleSheet.create({
   },
   calendarDayHeaderCell: {
     color: '#94a3b8',
-    width: '13%',
+    width: '14.28%',
     textAlign: 'center',
     fontWeight: 'bold',
   },
   calendarGrid: {
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
-    gap: 4,
-    justifyContent: 'space-between',
+    gap: 0,
   },
   calendarDayCell: {
-    width: '13%',
+    width: '14.28%',
     aspectRatio: 1,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 8,
-    marginBottom: 4,
+    marginBottom: 2,
     position: 'relative',
   },
   selectedDayCell: {
@@ -1562,6 +1675,40 @@ const styles = StyleSheet.create({
     height: 5,
     borderRadius: 2.5,
     backgroundColor: '#3b82f6',
+  },
+  blockedDayCell: {
+    backgroundColor: 'rgba(244, 63, 94, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(244, 63, 94, 0.3)',
+  },
+  blockedDayNumText: {
+    color: '#f43f5e',
+    fontWeight: 'bold',
+    textDecorationLine: 'line-through',
+  },
+  blockedDot: {
+    position: 'absolute',
+    bottom: 4,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#f43f5e',
+  },
+  blockDateBtn: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(244, 63, 94, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(244, 63, 94, 0.3)',
+    borderRadius: 8,
+    paddingVertical: 10,
+    marginTop: 12,
+  },
+  blockDateBtnText: {
+    color: '#f43f5e',
+    fontWeight: 'bold',
+    fontSize: 13,
   },
   bookingsPanel: {
     flex: 0.8,

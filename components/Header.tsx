@@ -9,6 +9,7 @@ export function Header() {
   const isHome = pathname === '/';
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
+  const isTablet = width >= 768 && width < 1024;
 
   const [showCta, setShowCta] = useState(!isHome);
   const [isScrolled, setIsScrolled] = useState(!isHome);
@@ -110,9 +111,9 @@ export function Header() {
     }
   }, []);
 
-  // Hide header on login, client private events, and admin dashboard
+  // Hide header on login, client private events, admin dashboard, and booking page
   // Placing this check AFTER all hook declarations ensures strict hook ordering
-  const hideHeaderRoutes = ['/login', '/client-event', '/dashboard'];
+  const hideHeaderRoutes = ['/login', '/client-event', '/dashboard', '/booking'];
   if (hideHeaderRoutes.includes(pathname)) {
     return null;
   }
@@ -150,7 +151,7 @@ export function Header() {
         ])}
         {...(Platform.OS === 'web' && isScrolled ? { className: 'header-glass-active' } : {})}
       >
-        <View style={StyleSheet.flatten(isMobile ? styles.mobileContent : styles.content)}>
+        <View style={StyleSheet.flatten(isMobile ? styles.mobileContent : isTablet ? styles.tabletContent : styles.content)}>
           {isMobile ? (
             // Mobile Header: Hamburger Menu (Left) + Logo (Right)
             <>
@@ -185,6 +186,7 @@ export function Header() {
               {/* Navigation */}
               <Animated.View style={[
                 styles.centerSection,
+                isTablet && styles.centerSectionTablet,
                 { paddingLeft: navPaddingLeft },
                 !showCta && { justifyContent: 'right' as any },
               ]}>
@@ -192,6 +194,7 @@ export function Header() {
                   <Pressable>
                     <Text style={StyleSheet.flatten([
                       styles.navText,
+                      isTablet && styles.navTextTablet,
                       pathname === '/specialties' && styles.activeNavText
                     ])}>
                       תחומי התמחות
@@ -202,6 +205,7 @@ export function Header() {
                   <Pressable>
                     <Text style={StyleSheet.flatten([
                       styles.navText,
+                      isTablet && styles.navTextTablet,
                       pathname === '/gallery' && styles.activeNavText
                     ])}>
                       גלריה
@@ -212,6 +216,7 @@ export function Header() {
                   <Pressable>
                     <Text style={StyleSheet.flatten([
                       styles.navText,
+                      isTablet && styles.navTextTablet,
                       pathname === '/about' && styles.activeNavText
                     ])}>
                       קצת עלינו
@@ -324,6 +329,16 @@ const styles = StyleSheet.create({
     maxWidth: 1400,
     alignSelf: 'center' as const,
   },
+  tabletContent: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    width: '100%' as any,
+    maxWidth: 1400,
+    alignSelf: 'center' as const,
+  },
   mobileContent: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
@@ -342,6 +357,9 @@ const styles = StyleSheet.create({
     alignItems: 'center' as const,
     gap: 40,
   },
+  centerSectionTablet: {
+    gap: 20,
+  },
   leftSection: {
     flex: 1,
     alignItems: 'flex-end' as const,
@@ -350,6 +368,9 @@ const styles = StyleSheet.create({
     color: Colors.dark.text,
     fontSize: 18,
     fontWeight: '500' as const,
+  },
+  navTextTablet: {
+    fontSize: 15,
   },
   logoContainer: {
     height: 50,

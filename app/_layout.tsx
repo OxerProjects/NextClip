@@ -5,13 +5,28 @@ import 'react-native-reanimated';
 import { I18nManager, Platform } from 'react-native';
 import { Colors } from '@/constants/theme';
 import { useEffect } from 'react';
+import { useFonts } from 'expo-font';
+import { Assistant_400Regular, Assistant_600SemiBold, Assistant_700Bold } from '@expo-google-fonts/assistant';
+import { Text, TextInput } from 'react-native';
 
-// Hide scrollbar on web
+// Optional: Global default font for React Native Text components (helps on iOS/Android without refactoring all components)
+interface TextWithDefaultProps extends Text {
+  defaultProps?: { style?: any };
+}
+(Text as unknown as TextWithDefaultProps).defaultProps = (Text as unknown as TextWithDefaultProps).defaultProps || {};
+(Text as unknown as TextWithDefaultProps).defaultProps!.style = { fontFamily: 'Assistant_400Regular' };
+
+interface TextInputWithDefaultProps extends TextInput {
+  defaultProps?: { style?: any };
+}
+(TextInput as unknown as TextInputWithDefaultProps).defaultProps = (TextInput as unknown as TextInputWithDefaultProps).defaultProps || {};
+(TextInput as unknown as TextInputWithDefaultProps).defaultProps!.style = { fontFamily: 'Assistant_400Regular' };
+
+
+// Smooth scroll and font on web
 if (Platform.OS === 'web' && typeof document !== 'undefined') {
   const style = document.createElement('style');
   style.textContent = `
-    ::-webkit-scrollbar { display: none; }
-    * { scrollbar-width: none; -ms-overflow-style: none; font-family: 'Google Sans', sans-serif; }
     html { scroll-behavior: smooth; }
   `;
   document.head.appendChild(style);
@@ -44,11 +59,26 @@ const CustomTheme = {
 };
 
 import { Header } from '@/components/Header';
+import { usePathname } from 'expo-router';
 
 export default function RootLayout() {
+  const pathname = usePathname();
+  const hideHeaderOn = ['/booking'];
+  const showHeader = !hideHeaderOn.includes(pathname);
+
+  const [fontsLoaded] = useFonts({
+    Assistant_400Regular,
+    Assistant_600SemiBold,
+    Assistant_700Bold,
+  });
+
+  if (!fontsLoaded) {
+    return null; // Or a splash screen
+  }
+
   return (
     <ThemeProvider value={CustomTheme}>
-      <Header />
+      {showHeader && <Header />}
       <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="specialties" />

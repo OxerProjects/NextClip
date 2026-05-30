@@ -1,14 +1,119 @@
 import { FontAwesome5 } from '@expo/vector-icons';
-import React from 'react';
-import { Linking, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import React, { useState } from 'react';
+import { Linking, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View, ActivityIndicator, Alert, Platform } from 'react-native';
+import { saveLead } from '@/utils/storage';
 
 export function ContactSection() {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
 
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+
   const handleOpenLink = (url: string) => {
     Linking.openURL(url).catch(err => console.error("Couldn't open URL", err));
   };
+
+  const handleSubmit = async () => {
+    if (!name || !phone) {
+      if (Platform.OS === 'web') {
+        window.alert('אנא מלא שם וטלפון');
+      } else {
+        Alert.alert('שגיאה', 'אנא מלא שם וטלפון');
+      }
+      return;
+    }
+    
+    setIsSubmitting(true);
+    await saveLead({
+      name, phone, email, message
+    });
+    setIsSubmitting(false);
+    setSuccess(true);
+    setName('');
+    setPhone('');
+    setEmail('');
+    setMessage('');
+    
+    setTimeout(() => {
+      setSuccess(false);
+    }, 4000);
+  };
+
+  const renderForm = () => (
+    <View style={styles.formColumn}>
+      <Text style={styles.formTitle}>פנה אלינו</Text>
+      <Text style={styles.formSubtitle}>התקשרו! שיחת ייעוץ ללא תשלום</Text>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>שם מלא:</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="שם מלא"
+          placeholderTextColor="#999"
+          textAlign="right"
+          value={name}
+          onChangeText={setName}
+        />
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>טלפון:</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="טלפון"
+          placeholderTextColor="#999"
+          textAlign="right"
+          keyboardType="phone-pad"
+          value={phone}
+          onChangeText={setPhone}
+        />
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>אימייל:</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="אימייל"
+          placeholderTextColor="#999"
+          textAlign="right"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+        />
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>תיאור הפניה:</Text>
+        <TextInput
+          style={[styles.input, styles.textArea]}
+          placeholder="...תוכן הפנייה"
+          placeholderTextColor="#999"
+          textAlign="right"
+          multiline
+          numberOfLines={4}
+          value={message}
+          onChangeText={setMessage}
+        />
+      </View>
+
+      <TouchableOpacity 
+        style={[styles.submitButton, success && { backgroundColor: '#10b981' }]} 
+        onPress={handleSubmit}
+        disabled={isSubmitting || success}
+      >
+        {isSubmitting ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.submitText}>{success ? 'נשלח בהצלחה!' : 'שליחה'}</Text>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -19,133 +124,31 @@ export function ContactSection() {
         {isMobile ? (
           // Mobile Layout: Form occupies full width, and contact buttons are grouped as clean circular icons below
           <View style={styles.mobileWrapper}>
-            <View style={styles.formColumn}>
-              <Text style={styles.formTitle}>פנה אלינו</Text>
-              <Text style={styles.formSubtitle}>התקשרו! שיחת ייעוץ ללא תשלום</Text>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>:שם מלא</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="שם מלא"
-                  placeholderTextColor="#999"
-                  textAlign="right"
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>:טלפון</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="טלפון"
-                  placeholderTextColor="#999"
-                  textAlign="right"
-                  keyboardType="phone-pad"
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>:אמייל</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="אמייל"
-                  placeholderTextColor="#999"
-                  textAlign="right"
-                  keyboardType="email-address"
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>:תיאור הפניה</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  placeholder="...תוכן הפנייה"
-                  placeholderTextColor="#999"
-                  textAlign="right"
-                  multiline
-                  numberOfLines={4}
-                />
-              </View>
-
-              <TouchableOpacity style={styles.submitButton}>
-                <Text style={styles.submitText}>שליחה</Text>
-              </TouchableOpacity>
-            </View>
+            {renderForm()}
 
             {/* Mobile Contact Icons Row - Icons grouped together beautifully */}
             <View style={styles.mobileIconsRow}>
               <IconButton icon="whatsapp" color="#4ade80" onPress={() => handleOpenLink("https://wa.me/972508474111")} />
               <IconButton icon="phone-alt" color="#5eead4" onPress={() => handleOpenLink("tel:0508474111")} />
               <IconButton icon="envelope" color="#ff8a65" onPress={() => handleOpenLink("mailto:Next.Clip.St@gmail.com")} />
-              <IconButton icon="instagram" color="#ec4899" onPress={() => handleOpenLink("https://instagram.com/Next_Clip")} />
-              <IconButton icon="tiktok" color="#818cf8" onPress={() => handleOpenLink("https://tiktok.com/@Next_Clip")} />
+              <IconButton icon="instagram" color="#ec4899" onPress={() => handleOpenLink("https://www.instagram.com/next_clip_studio/")} />
+              <IconButton icon="tiktok" color="#818cf8" onPress={() => handleOpenLink("https://www.tiktok.com/@next_clip_studio?_r=1&_t=ZS-912ypQaG6qW")} />
             </View>
           </View>
         ) : (
-          // Desktop Layout (Exactly untouched as before)
+          // Desktop Layout
           <>
             {/* Left Side: Contact Info Cards */}
             <View style={styles.infoColumn}>
               <ContactCard icon="whatsapp" color="#4ade80" text="NextClip" onPress={() => handleOpenLink("https://wa.me/972508474111")} />
               <ContactCard icon="phone-alt" color="#5eead4" text="050-84741111" onPress={() => handleOpenLink("tel:0508474111")} />
               <ContactCard icon="envelope" color="#ff8a65" text="Next.Clip.St@gmail.com" onPress={() => handleOpenLink("mailto:Next.Clip.St@gmail.com")} />
-              <ContactCard icon="instagram" color="#ec4899" text="@Next_Clip" onPress={() => handleOpenLink("https://instagram.com/Next_Clip")} />
-              <ContactCard icon="tiktok" color="#818cf8" text="#Next_Clip" onPress={() => handleOpenLink("https://tiktok.com/@Next_Clip")} />
+              <ContactCard icon="instagram" color="#ec4899" text="@next_clip_studio" onPress={() => handleOpenLink("https://www.instagram.com/next_clip_studio/")} />
+              <ContactCard icon="tiktok" color="#818cf8" text="@next_clip_studio" onPress={() => handleOpenLink("https://www.tiktok.com/@next_clip_studio?_r=1&_t=ZS-912ypQaG6qW")} />
             </View>
 
             {/* Right Side: Form */}
-            <View style={styles.formColumn}>
-              <Text style={styles.formTitle}>פנה אלינו</Text>
-              <Text style={styles.formSubtitle}>התקשרו! שיחת ייעוץ ללא תשלום</Text>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>שם מלא:</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="שם מלא"
-                  placeholderTextColor="#999"
-                  textAlign="right"
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>טלפון:</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="טלפון"
-                  placeholderTextColor="#999"
-                  textAlign="right"
-                  keyboardType="phone-pad"
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>אמייל:</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="אמייל"
-                  placeholderTextColor="#999"
-                  textAlign="right"
-                  keyboardType="email-address"
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>תיאור הפניה:</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  placeholder="...תוכן הפנייה"
-                  placeholderTextColor="#999"
-                  textAlign="right"
-                  multiline
-                  numberOfLines={4}
-                />
-              </View>
-
-              <TouchableOpacity style={styles.submitButton}>
-                <Text style={styles.submitText}>שליחה</Text>
-              </TouchableOpacity>
-            </View>
+            {renderForm()}
           </>
         )}
 
@@ -176,7 +179,7 @@ function IconButton({ icon, color, onPress }: { icon: string, color: string, onP
 const styles = StyleSheet.create({
   container: {
     paddingVertical: 60,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     backgroundColor: 'transparent',
     alignItems: 'center',
     width: '100%',
@@ -258,7 +261,6 @@ const styles = StyleSheet.create({
     marginTop: -10,
     marginBottom: 30,
     fontWeight: '500',
-    fontFamily: 'Google Sans, sans-serif',
   },
   inputGroup: {
     marginBottom: 16,
