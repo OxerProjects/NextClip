@@ -121,23 +121,23 @@ const styles = StyleSheet.create({
     fontFamily: 'Google Sans, sans-serif',
   },
   mobileMainTitle: {
-    textAlign: 'center',
+    textAlign: 'right',
     fontSize: 36,
     marginBottom: 24,
   },
   contentRow: {
-    flexDirection: 'row', // Left: Logo, Right: Text
+    flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 60,
   },
   mobileContentRow: {
-    flexDirection: 'column-reverse', // Logo below or above, text on top
+    flexDirection: 'column',
     gap: 32,
   },
   logoColumn: {
     flex: 1,
-    alignItems: 'flex-start',
+    alignItems: 'flex-end',
     justifyContent: 'center',
   },
   mobileLogoColumn: {
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Google Sans, sans-serif',
   },
   mobileTextAlign: {
-    textAlign: 'center',
+    textAlign: 'right',
   },
   contactWrapper: {
     borderTopWidth: 1,

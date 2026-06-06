@@ -15,28 +15,29 @@ export function Header() {
   const [isScrolled, setIsScrolled] = useState(!isHome);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [servicesOpen, setServicesOpen] = useState(false);
+  const [mobileServicesOpen, setMobileServicesOpen] = useState(false);
 
-  // Animation values
   const animValue = useRef(new Animated.Value(0)).current;
   const menuAnim = useRef(new Animated.Value(0)).current;
 
-  // Sync header state on page transitions (pathname changes)
+  const isServicePage = pathname.startsWith('/service/');
+  const activeService = pathname === '/service/1' || pathname === '/service/2' || pathname === '/service/3';
+
   useEffect(() => {
     if (!isHome) {
       setShowCta(true);
       setIsScrolled(true);
     } else {
-      // We are on home, check current scroll position to initialize states
       const y = Platform.OS === 'web' ? window.scrollY : 0;
       setShowCta(y > 400);
       setIsScrolled(y > 20);
     }
-    // Make sure mobile menu closes on page transition
     setIsMenuOpen(false);
     menuAnim.setValue(0);
+    setServicesOpen(false);
   }, [pathname, isHome]);
 
-  // Scroll listeners only active on Home page
   useEffect(() => {
     if (!isHome) return;
 
@@ -51,7 +52,6 @@ export function Header() {
     if (Platform.OS === 'web') {
       webHandler = () => handleScroll(window.scrollY);
       window.addEventListener('scroll', webHandler);
-      // Run once to match current scroll
       handleScroll(window.scrollY);
     }
 
@@ -63,7 +63,6 @@ export function Header() {
     };
   }, [isHome]);
 
-  // Animate when showCta changes
   useEffect(() => {
     Animated.timing(animValue, {
       toValue: showCta ? 1 : 0,
@@ -73,7 +72,6 @@ export function Header() {
   }, [showCta]);
 
 
-  // Toggle mobile menu drawer animation
   const toggleMenu = (open: boolean) => {
     if (open) {
       setIsMenuOpen(true);
@@ -89,11 +87,11 @@ export function Header() {
         useNativeDriver: false,
       }).start(() => {
         setIsMenuOpen(false);
+        setMobileServicesOpen(false);
       });
     }
   };
 
-  // Inject frosted glass CSS style tag globally on Web
   useEffect(() => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
       if (!document.getElementById('header-glass-style')) {
@@ -106,13 +104,22 @@ export function Header() {
             backdrop-filter: blur(20px) !important;
             -webkit-backdrop-filter: blur(20px) !important;
           }
+          .services-dropdown-item:hover {
+            background: rgba(59,130,246,0.12) !important;
+          }
+          .services-menu {
+            animation: dropdownIn 0.18s ease forwards;
+          }
+          @keyframes dropdownIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to   { opacity: 1; transform: translateY(0); }
+          }
         `;
         document.head.appendChild(style);
       }
     }
   }, []);
 
-  // Listen for lightbox open/close events from gallery
   useEffect(() => {
     const sub = DeviceEventEmitter.addListener('lightboxOpen', (isOpen: boolean) => {
       setLightboxOpen(isOpen);
@@ -120,33 +127,72 @@ export function Header() {
     return () => sub.remove();
   }, []);
 
-  // Hide header on login, client private events, admin dashboard, and booking page
-  // Placing this check AFTER all hook declarations ensures strict hook ordering
   const hideHeaderRoutes = ['/login', '/client-event', '/dashboard', '/booking'];
   if (hideHeaderRoutes.includes(pathname) || lightboxOpen) {
     return null;
   }
 
-  const ctaFlex = animValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 1],
-  });
+  const ctaFlex = animValue.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
+  const ctaOpacity = animValue.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 0, 1] });
+  const navPaddingLeft = animValue.interpolate({ inputRange: [0, 1], outputRange: [200, 0] });
+  const menuTranslateX = menuAnim.interpolate({ inputRange: [0, 1], outputRange: [width, 0] });
 
-  const ctaOpacity = animValue.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0, 0, 1],
-  });
 
-  const navPaddingLeft = animValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [450, 0],
-  });
+  const ServicesDropdown = () => (
+    <View
+      style={dropdownStyles.wrapper}
+      {...(Platform.OS === 'web' ? {
+        onMouseEnter: () => setServicesOpen(true),
+        onMouseLeave: () => setServicesOpen(false),
+      } as any : {})}
+    >
+      <Pressable
+        style={StyleSheet.flatten([dropdownStyles.trigger, activeService ? dropdownStyles.triggerActive : null])}
+        onPress={() => setServicesOpen(!servicesOpen)}
+      >
+        <Text style={StyleSheet.flatten([styles.navText, isTablet ? styles.navTextTablet : null, activeService ? styles.activeNavText : null])}>
+          שירותים
+        </Text>
+        <Feather
+          name="chevron-down"
+          size={14}
+          color={activeService ? '#3b82f6' : 'rgba(255,255,255,0.7)'}
+          style={{ marginRight: 2, marginTop: 2 }}
+        />
+      </Pressable>
 
-  // Slide drawer from the right edge
-  const menuTranslateX = menuAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [width, 0],
-  });
+      {/* Bridge: fills the gap between trigger and menu so hover doesn't break */}
+      {servicesOpen && <View style={dropdownStyles.bridge} />}
+
+      {servicesOpen && (
+        <View
+          style={dropdownStyles.menu}
+          {...(Platform.OS === 'web' ? { className: 'services-menu' } : {})}
+        >
+          {[
+            { href: '/service/2', label: 'עמדת צילום AI', icon: '📸', desc: 'האטרקציה שלא ישכחו' },
+            { href: '/service/1', label: 'מגנטים', icon: '🧲', desc: 'מזכרת שנשארת לנצח' },
+            { href: '/service/3', label: 'סטילס', icon: '🎞️', desc: 'צילום מקצועי' },
+          ].map((item) => (
+            <Link key={item.href} href={item.href as any} asChild>
+              <Pressable
+                style={StyleSheet.flatten([dropdownStyles.item, pathname === item.href ? dropdownStyles.itemActive : null])}
+                {...(Platform.OS === 'web' ? { className: 'services-dropdown-item' } : {})}
+              >
+                <Text style={dropdownStyles.itemIcon}>{item.icon}</Text>
+                <View style={dropdownStyles.itemText}>
+                  <Text style={StyleSheet.flatten([dropdownStyles.itemLabel, pathname === item.href ? dropdownStyles.itemLabelActive : null])}>
+                    {item.label}
+                  </Text>
+                  <Text style={dropdownStyles.itemDesc}>{item.desc}</Text>
+                </View>
+              </Pressable>
+            </Link>
+          ))}
+        </View>
+      )}
+    </View>
+  );
 
   return (
     <>
@@ -162,26 +208,19 @@ export function Header() {
       >
         <View style={StyleSheet.flatten(isMobile ? styles.mobileContent : isTablet ? styles.tabletContent : styles.content)}>
           {isMobile ? (
-            // Mobile Header: Hamburger Menu (Left) + Logo (Right)
             <>
               <Pressable style={styles.hamburgerBtn} onPress={() => toggleMenu(true)}>
                 <Feather name="menu" size={26} color="#fff" />
               </Pressable>
-
               <View style={styles.mobileLogoContainer}>
                 <Link href="/" asChild>
                   <Pressable style={StyleSheet.flatten(styles.logoContainer)}>
-                    <Image
-                      source={require('@/assets/images/logo.png')}
-                      style={styles.logoImage}
-                      resizeMode="contain"
-                    />
+                    <Image source={require('@/assets/images/logo.png')} style={styles.logoImage} resizeMode="contain" />
                   </Pressable>
                 </Link>
               </View>
             </>
           ) : (
-            // Desktop Header (Untouched exactly as before)
             <>
               {/* Right - CTA Button */}
               <Animated.View style={[styles.rightSection, { flex: ctaFlex, opacity: ctaOpacity }]}>
@@ -199,35 +238,24 @@ export function Header() {
                 { paddingLeft: navPaddingLeft },
                 !showCta && { justifyContent: 'right' as any },
               ]}>
-                <Link href="/specialties" asChild>
+                <Link href="/" asChild>
                   <Pressable>
-                    <Text style={StyleSheet.flatten([
-                      styles.navText,
-                      isTablet && styles.navTextTablet,
-                      pathname === '/specialties' && styles.activeNavText
-                    ])}>
-                      תחומי התמחות
+                    <Text style={StyleSheet.flatten([styles.navText, isTablet && styles.navTextTablet, pathname === '/' && styles.activeNavText])}>
+                      בית
                     </Text>
                   </Pressable>
                 </Link>
+                <ServicesDropdown />
                 <Link href="/gallery" asChild>
                   <Pressable>
-                    <Text style={StyleSheet.flatten([
-                      styles.navText,
-                      isTablet && styles.navTextTablet,
-                      pathname === '/gallery' && styles.activeNavText
-                    ])}>
+                    <Text style={StyleSheet.flatten([styles.navText, isTablet && styles.navTextTablet, pathname === '/gallery' && styles.activeNavText])}>
                       גלריה
                     </Text>
                   </Pressable>
                 </Link>
                 <Link href="/about" asChild>
                   <Pressable>
-                    <Text style={StyleSheet.flatten([
-                      styles.navText,
-                      isTablet && styles.navTextTablet,
-                      pathname === '/about' && styles.activeNavText
-                    ])}>
+                    <Text style={StyleSheet.flatten([styles.navText, isTablet && styles.navTextTablet, pathname === '/about' && styles.activeNavText])}>
                       קצת עלינו
                     </Text>
                   </Pressable>
@@ -238,11 +266,7 @@ export function Header() {
               <View style={styles.leftSection}>
                 <Link href="/" asChild>
                   <Pressable style={StyleSheet.flatten(styles.logoContainer)}>
-                    <Image
-                      source={require('@/assets/images/logo.png')}
-                      style={styles.logoImage}
-                      resizeMode="contain"
-                    />
+                    <Image source={require('@/assets/images/logo.png')} style={styles.logoImage} resizeMode="contain" />
                   </Pressable>
                 </Link>
               </View>
@@ -251,7 +275,7 @@ export function Header() {
         </View>
       </View>
 
-      {/* Premium Mobile Menu Overlay Drawer (Slides in 9/10 width from right, pure black background, with pointing arrow) */}
+      {/* Mobile Menu Drawer */}
       {isMobile && isMenuOpen && (
         <Animated.View
           style={[
@@ -259,55 +283,59 @@ export function Header() {
             { transform: [{ translateX: menuTranslateX }] }
           ]}
         >
-          {/* Close button pointing right (arrow-right) */}
           <Pressable style={styles.closeBtn} onPress={() => toggleMenu(false)}>
             <Feather name="arrow-right" size={32} color="#fff" />
           </Pressable>
 
-          {/* Logo (top-right) */}
           <View style={styles.menuLogoContainer}>
-            <Image
-              source={require('@/assets/images/logo.png')}
-              style={styles.logoImage}
-              resizeMode="contain"
-            />
+            <Image source={require('@/assets/images/logo.png')} style={styles.logoImage} resizeMode="contain" />
           </View>
 
-          {/* Menu Links */}
           <View style={styles.menuLinks}>
-            <Link href="/specialties" asChild>
+            <Link href="/" asChild>
               <Pressable onPress={() => toggleMenu(false)}>
-                <Text style={StyleSheet.flatten([
-                  styles.menuLinkText,
-                  pathname === '/specialties' && styles.activeMenuLinkText
-                ])}>
-                  תחומי התמחות
-                </Text>
+                <Text style={StyleSheet.flatten([styles.menuLinkText, pathname === '/' && styles.activeMenuLinkText])}>בית</Text>
               </Pressable>
             </Link>
+
+            {/* Mobile Services Accordion */}
+            <Pressable onPress={() => setMobileServicesOpen(!mobileServicesOpen)}>
+              <View style={{ flexDirection: 'row-reverse', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+                <Text style={StyleSheet.flatten([styles.menuLinkText, activeService && styles.activeMenuLinkText])}>שירותים</Text>
+                <Feather name={mobileServicesOpen ? 'chevron-up' : 'chevron-down'} size={22} color={activeService ? '#3b82f6' : '#fff'} />
+              </View>
+            </Pressable>
+
+            {mobileServicesOpen && (
+              <View style={mobileStyles.servicesAccordion}>
+                {[
+                  { href: '/service/2', label: 'עמדת צילום AI' },
+                  { href: '/service/1', label: 'מגנטים' },
+                  { href: '/service/3', label: 'סטילס' },
+                ].map((item) => (
+                  <Link key={item.href} href={item.href as any} asChild>
+                    <Pressable onPress={() => toggleMenu(false)} style={mobileStyles.accordionItem}>
+                      <Text style={StyleSheet.flatten([mobileStyles.accordionText, pathname === item.href ? { color: '#3b82f6' } : null])}>
+                        {item.label}
+                      </Text>
+                    </Pressable>
+                  </Link>
+                ))}
+              </View>
+            )}
+
             <Link href="/gallery" asChild>
               <Pressable onPress={() => toggleMenu(false)}>
-                <Text style={StyleSheet.flatten([
-                  styles.menuLinkText,
-                  pathname === '/gallery' && styles.activeMenuLinkText
-                ])}>
-                  גלריה
-                </Text>
+                <Text style={StyleSheet.flatten([styles.menuLinkText, pathname === '/gallery' && styles.activeMenuLinkText])}>גלריה</Text>
               </Pressable>
             </Link>
             <Link href="/about" asChild>
               <Pressable onPress={() => toggleMenu(false)}>
-                <Text style={StyleSheet.flatten([
-                  styles.menuLinkText,
-                  pathname === '/about' && styles.activeMenuLinkText
-                ])}>
-                  קצת עלינו
-                </Text>
+                <Text style={StyleSheet.flatten([styles.menuLinkText, pathname === '/about' && styles.activeMenuLinkText])}>קצת עלינו</Text>
               </Pressable>
             </Link>
           </View>
 
-          {/* Center CTA Button */}
           <Link href="/booking" asChild>
             <Pressable style={StyleSheet.flatten(styles.menuCtaButton)} onPress={() => toggleMenu(false)}>
               <Text style={styles.menuCtaText}>להזמנה</Text>
@@ -318,6 +346,104 @@ export function Header() {
     </>
   );
 }
+
+const dropdownStyles = StyleSheet.create({
+  wrapper: {
+    position: 'relative' as any,
+    zIndex: 2000,
+  },
+  trigger: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+    borderRadius: 8,
+  },
+  triggerActive: {},
+  bridge: {
+    position: 'absolute' as any,
+    top: '100%' as any,
+    right: 0,
+    width: '100%',
+    height: 10,
+  },
+  menu: {
+    position: 'absolute' as any,
+    top: '100%' as any,
+    right: 0,
+    marginTop: 10,
+    backgroundColor: 'rgba(10, 16, 35, 0.97)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    minWidth: 240,
+    overflow: 'hidden',
+    ...Platform.select({
+      web: { boxShadow: '0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(59,130,246,0.1)' } as any,
+    }),
+  },
+  item: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    margin: 4,
+    borderRadius: 10,
+    backgroundColor: 'transparent',
+  },
+  itemActive: {
+    backgroundColor: 'rgba(59,130,246,0.12)',
+  },
+  itemIcon: {
+    fontSize: 22,
+  },
+  itemText: {
+    alignItems: 'flex-end',
+    flex: 1,
+  },
+  itemLabel: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'right',
+  },
+  itemLabelActive: {
+    color: '#3b82f6',
+  },
+  itemDesc: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 12,
+    textAlign: 'right',
+    marginTop: 2,
+  },
+});
+
+const mobileStyles = StyleSheet.create({
+  servicesAccordion: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 12,
+    overflow: 'hidden',
+    width: '100%',
+    maxWidth: 320,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  accordionItem: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
+    alignItems: 'center',
+  },
+  accordionText: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 20,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -364,7 +490,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row' as const,
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
-    gap: 40,
+    gap: 24,
   },
   centerSectionTablet: {
     gap: 20,
@@ -400,7 +526,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold' as const,
   },
-  // Mobile styles
   hamburgerBtn: {
     padding: 8,
   },
@@ -412,18 +537,17 @@ const styles = StyleSheet.create({
     position: Platform.OS === 'web' ? 'fixed' as any : 'absolute',
     top: 0,
     right: 0,
-    width: '90%', // 9/10 of the screen width
+    width: '90%',
     bottom: 0,
     height: Platform.OS === 'web' ? '100vh' as any : '100%',
-    backgroundColor: '#000000', // Pure Solid Black
+    backgroundColor: '#000000',
     borderLeftWidth: 1,
     borderLeftColor: 'rgba(255,255,255,0.1)',
     zIndex: 9999,
     paddingHorizontal: 30,
     alignItems: 'center',
-    justifyContent: 'center', // Centered vertically in the middle of the screen!
+    justifyContent: 'center',
     gap: 32,
-    // Soft shadow boundary on the left edge
     shadowColor: '#000',
     shadowOffset: { width: -8, height: 0 },
     shadowOpacity: 0.5,
@@ -449,7 +573,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     maxWidth: 320,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)', // Elegant subtle background card
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
     borderRadius: 16,
@@ -465,7 +589,7 @@ const styles = StyleSheet.create({
   menuCtaButton: {
     backgroundColor: '#0056DB',
     width: '100%',
-    maxWidth: 320, // Match the menuLinks card width
+    maxWidth: 320,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -477,7 +601,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   activeNavText: {
-    color: '#3b82f6', // Sleek Brand Cyan Highlight
+    color: '#3b82f6',
     fontWeight: '700' as const,
   },
   activeMenuLinkText: {

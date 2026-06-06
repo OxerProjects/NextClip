@@ -1,43 +1,77 @@
 import { Colors } from '@/constants/theme';
-import { Link } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { Image, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Image, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+
+const SERVICE_SLUGS: Record<number, string> = {
+  1: '1',
+  2: '2',
+  3: '3',
+};
 
 const SERVICES_DATA = [
   {
     id: 1,
     title: 'מגנטים',
-    text: 'לכל תמונה יפה מגיעה איכות מקסימלית! כל מגנט מעוצב באופן אישי לבחירתכם ולפי סגנון האירוע. על החומרים שלנו אנחנו לא מתפשרים על מנת לקבל תוצאה של מזכרת מעוצבת, יוקרתית ועמידה – בדיוק כמו הרגעים שהיא מתעדת.',
+    text: 'מגנט מעוצב אישית לפי סגנון האירוע, חומרים פרימיום ומסירה מיידית – מזכרת שנשארת לנצח.',
     image: '/magnets.png',
     isProminent: false,
-    price: '1,190',
+    price: '1,200',
   },
   {
     id: 2,
     title: 'עמדת צילום AI',
-    text: 'אצלנו לא מדובר בעוד עמדת צילום משעממת, העמדה שלנו היא אטרקציה שלא רואים באף אירוע אחר!\n\nבחירת מגוון עצום של אפקטים מיוחדים של AI, ותוספות מיוחדות (כמו: שטיח אדום, עמודי חבלול, חצובות תאורה, מראה מעוצבת עם שמות המתחתנים), הופכים את העמדה שלנו לאטרקציה יפה, מחמיאה, ומזמינה שהאורחים לא שוכחים.',
+    text: 'אטרקציה שלא רואים באף אירוע אחר! אפקטי AI מרהיבים, שטיח אדום, תאורה מקצועית ושיתוף מיידי לנייד.',
     image: '/main.png',
     isProminent: true,
     badgeText: 'הבחירה הפופולרית',
-    price: '1,890',
+    price: '1,650',
   },
   {
     id: 3,
     title: 'צילום סטילס',
-    text: 'צלמים מקצועיים שיתפסו את כל הרגעים החשובים באירוע שלכם, החיוכים, ההתרגשות, הקסם של האירוע שלכם והכל, בצורה הכי מחמיאה ויפה שיש.',
+    text: 'צלם מקצועי שיתפוס כל רגע – החיוכים, ההתרגשות והקסם של האירוע שלכם, בצורה הכי מחמיאה שיש.',
     image: '/service1.png',
     isProminent: false,
-    price: '1,490',
+    price: '1,300',
   }
 ];
 
 export function ServicesSection() {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
+  const router = useRouter();
 
   // Track hovered state for cards and buttons
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
   const [hoveredBtn, setHoveredBtn] = useState<number | null>(null);
+
+  // Per-card zoom animation refs
+  const cardScales = useRef(SERVICES_DATA.map(() => new Animated.Value(1))).current;
+
+  const handleCardPress = (item: typeof SERVICES_DATA[number], index: number) => {
+    if (Platform.OS === 'web') {
+      // On web: CSS handles the zoom via class; navigate immediately
+      router.push(`/service/${SERVICE_SLUGS[item.id]}`);
+      return;
+    }
+    // Native: spring zoom-in then navigate
+    Animated.sequence([
+      Animated.spring(cardScales[index], {
+        toValue: 1.08,
+        useNativeDriver: true,
+        tension: 200,
+        friction: 7,
+      }),
+      Animated.timing(cardScales[index], {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      router.push(`/service/${SERVICE_SLUGS[item.id]}`);
+    });
+  };
 
   // Safely inject web-specific, crash-free stylesheet to document head on Web platform
   useEffect(() => {
@@ -77,6 +111,10 @@ export function ServicesSection() {
           .service-btn-web-prominent-hovered {
             box-shadow: 0 8px 20px rgba(0, 86, 219, 0.4) !important;
           }
+          .service-card-web-clicking {
+            transform: scale(1.06) !important;
+            transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
+          }
         `;
         document.head.appendChild(style);
       }
@@ -108,13 +146,20 @@ export function ServicesSection() {
           ].filter(Boolean).join(' ');
 
           return (
-            <Pressable
+            <Animated.View
               key={item.id}
+              style={[
+                !isMobile ? styles.desktopCard : styles.mobileCard,
+                { transform: [{ scale: cardScales[index] }] },
+              ]}
+            >
+            <Pressable
+              onPress={() => handleCardPress(item, index)}
               onHoverIn={() => !isMobile && setHoveredCard(index)}
               onHoverOut={() => !isMobile && setHoveredCard(null)}
               style={StyleSheet.flatten([
                 styles.card,
-                !isMobile ? styles.desktopCard : styles.mobileCard,
+                styles.cardFill,
                 (item.isProminent && !isMobile) ? styles.prominentCard : null,
                 isHovered ? styles.cardHovered : null,
                 (item.isProminent && isHovered) ? styles.prominentCardHovered : null,
@@ -163,33 +208,36 @@ export function ServicesSection() {
                   </View>
 
                   {/* Button: לפרטים נוספים */}
-                  <Link href="/booking" asChild>
-                    <Pressable
-                      onHoverIn={() => !isMobile && setHoveredBtn(index)}
-                      onHoverOut={() => !isMobile && setHoveredBtn(null)}
-                      style={StyleSheet.flatten([
-                        styles.ctaButton,
-                        item.isProminent ? styles.prominentCtaButton : styles.outlineCtaButton,
-                        isMobile ? styles.mobileCtaButton : null,
-                        isBtnHovered ? styles.ctaButtonHovered : null,
-                        (item.isProminent && isBtnHovered) ? styles.prominentCtaButtonHovered : null,
-                        (!item.isProminent && isBtnHovered) ? styles.outlineCtaButtonHovered : null,
-                      ])}
-                      {...(Platform.OS === 'web' ? { className: btnClasses } : {})}
-                    >
-                      <Text style={[
-                        styles.ctaButtonText,
-                        !item.isProminent && styles.outlineCtaText,
-                        !item.isProminent && isBtnHovered && styles.outlineCtaTextHovered
-                      ]}>
-                        לפרטים והזמנה
-                      </Text>
-                    </Pressable>
-                  </Link>
+                  <Pressable
+                    onPress={(e) => {
+                      e.stopPropagation?.();
+                      handleCardPress(item, index);
+                    }}
+                    onHoverIn={() => !isMobile && setHoveredBtn(index)}
+                    onHoverOut={() => !isMobile && setHoveredBtn(null)}
+                    style={StyleSheet.flatten([
+                      styles.ctaButton,
+                      item.isProminent ? styles.prominentCtaButton : styles.outlineCtaButton,
+                      isMobile ? styles.mobileCtaButton : null,
+                      isBtnHovered ? styles.ctaButtonHovered : null,
+                      (item.isProminent && isBtnHovered) ? styles.prominentCtaButtonHovered : null,
+                      (!item.isProminent && isBtnHovered) ? styles.outlineCtaButtonHovered : null,
+                    ])}
+                    {...(Platform.OS === 'web' ? { className: btnClasses } : {})}
+                  >
+                    <Text style={[
+                      styles.ctaButtonText,
+                      !item.isProminent && styles.outlineCtaText,
+                      !item.isProminent && isBtnHovered && styles.outlineCtaTextHovered
+                    ]}>
+                      לפרטים והזמנה
+                    </Text>
+                  </Pressable>
 
                 </View>
               </View>
             </Pressable>
+            </Animated.View>
           );
         })}
       </View>
@@ -258,6 +306,10 @@ const styles = StyleSheet.create({
   desktopCard: {
     flex: 1,
   },
+  cardFill: {
+    flex: 1,
+    width: '100%',
+  },
   prominentCard: {
     flex: 1.15,
     borderColor: 'rgba(0, 86, 219, 0.25)',
@@ -304,7 +356,7 @@ const styles = StyleSheet.create({
   badge: {
     position: 'absolute',
     top: 16,
-    left: 16,
+    right: 16,
     backgroundColor: '#0056DB',
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -324,8 +376,7 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     padding: 32,
-    alignItems: 'center',
-    direction: 'rtl',
+    alignItems: 'flex-end',
     width: '100%',
   },
   mobileCardContent: {
@@ -336,8 +387,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     marginBottom: 16,
-    textAlign: 'center',
-    fontFamily: 'Google Sans, sans-serif',
+    textAlign: 'right',
+    fontFamily: 'Assistant_700Bold',
+    width: '100%',
   },
   mobileCardTitle: {
     fontSize: 24,
@@ -354,10 +406,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#cbd5e1',
     lineHeight: 26,
-    textAlign: 'center',
-    fontFamily: 'Google Sans, sans-serif',
+    textAlign: 'right',
+    fontFamily: 'Assistant_400Regular',
     marginBottom: 32,
-    minHeight: 130, // Keep height unified so CTA buttons align perfectly
+    minHeight: 130,
+    width: '100%',
   },
   mobileCardText: {
     fontSize: 14,

@@ -88,6 +88,7 @@ export default function RootLayout() {
         <Stack.Screen name="login" />
         <Stack.Screen name="client-event" />
         <Stack.Screen name="dashboard" />
+        <Stack.Screen name="service/[id]" options={{ animation: 'fade' }} />
       </Stack>
       <StatusBar style="light" />
     </ThemeProvider>
