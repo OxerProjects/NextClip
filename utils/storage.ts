@@ -82,6 +82,11 @@ const compressImageWeb = async (uri: string, maxDim = 1200, quality = 0.75): Pro
 
 export const getGalleryImages = async (): Promise<GalleryImage[]> => {
   try {
+    const apiGallery = await fetchWithFallback('get_gallery');
+    if (apiGallery && Array.isArray(apiGallery) && apiGallery.length > 0) {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(apiGallery));
+      return apiGallery;
+    }
     const data = await AsyncStorage.getItem(STORAGE_KEY);
     if (data) {
       const parsed = JSON.parse(data);
@@ -91,7 +96,9 @@ export const getGalleryImages = async (): Promise<GalleryImage[]> => {
       }
       return parsed;
     }
-    return generateMockImages();
+    const mock = generateMockImages();
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(mock));
+    return mock;
   } catch (error) {
     console.error('Failed to load images', error);
     return [];
@@ -106,6 +113,7 @@ export const saveGalleryImage = async (image: Omit<GalleryImage, 'id' | 'col' | 
     if (Platform.OS === 'web') {
       uri = await compressImageWeb(uri, 600, 0.75); // Gallery images are smaller, max 600px is perfect!
     }
+    const uploadedUri = await uploadImageToVercelBlob(uri, `gallery_${Date.now()}.jpg`);
 
     const colHeights = new Array(NUM_COLS).fill(0);
     images.forEach(img => {
@@ -120,12 +128,14 @@ export const saveGalleryImage = async (image: Omit<GalleryImage, 'id' | 'col' | 
 
     const newImage: GalleryImage = {
       ...image,
-      uri,
+      uri: uploadedUri,
       id: Date.now().toString(),
       col: minCol,
       row_y: colHeights[minCol],
     };
     images.push(newImage);
+    
+    await fetchWithFallback('save_gallery', { data: images });
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(images));
     return newImage;
   } catch (error) {
@@ -166,21 +176,16 @@ const generateMockImages = (): GalleryImage[] => {
 // --- CLOUD API DATABASE CONFIG & UTILS ---
 
 const getApiUrl = () => {
-  if (process.env.EXPO_PUBLIC_VERCEL_API_URL) {
-    return process.env.EXPO_PUBLIC_VERCEL_API_URL;
-  }
+  // Always use the local Expo API route by default, it handles local JSON.
   if (typeof window !== 'undefined') {
-    return `${window.location.origin}/api/nextclip-db`;
+    return `${window.location.origin}/api/db`;
   }
-  return '';
+  // Fallback for native/SSR if needed (assuming local dev server)
+  return 'http://localhost:8081/api/db';
 };
 
 const shouldCallApi = () => {
-  // If explicitly connected via environment variables locally, allow calling the cloud API
-  if (process.env.EXPO_PUBLIC_VERCEL_API_URL) return true;
-  if (typeof window === 'undefined') return false;
-  const host = window.location.hostname;
-  return !host.includes('localhost') && !host.includes('127.0.0.1') && !host.includes('192.168.');
+  return true; // Always call our local Expo API
 };
 
 const fetchWithFallback = async (action: string, bodyData?: any) => {
@@ -190,9 +195,9 @@ const fetchWithFallback = async (action: string, bodyData?: any) => {
       if (!apiUrl) return null;
 
       const response = await fetch(apiUrl, {
-        method: bodyData ? 'POST' : 'GET',
+        method: 'POST', // Always POST to safely transmit JSON body with action!
         headers: { 'Content-Type': 'application/json' },
-        body: bodyData ? JSON.stringify({ action, ...bodyData }) : undefined,
+        body: JSON.stringify({ action, ...bodyData }),
       });
       if (response.ok) {
         return await response.json();
@@ -435,3 +440,101 @@ const generateMockEvents = (): ClientEvent[] => {
     }
   ];
 };
+
+// --- LEADS & BOOKINGS FUNCTIONS ---
+
+export type ContactLead = {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  message: string;
+  date: string;
+};
+
+export type BookingLead = {
+  id: string;
+  dateStr: string; // YYYY-MM-DD
+  name: string;
+  phone: string;
+  email: string;
+  location?: string;
+  eventType: string;
+  notes: string;
+  startTime: string;
+  endTime: string;
+  guests: number;
+  services: string[];
+  totalPrice: number;
+  status: 'pending' | 'blocked' | 'confirmed';
+  createdAt: string;
+};
+
+export const getLeads = async (): Promise<ContactLead[]> => {
+  try {
+    const apiLeads = await fetchWithFallback('get_leads');
+    if (apiLeads && Array.isArray(apiLeads)) return apiLeads;
+    
+    const localData = await AsyncStorage.getItem('@nextclip_leads');
+    return localData ? JSON.parse(localData) : [];
+  } catch {
+    return [];
+  }
+};
+
+export const saveLead = async (lead: Omit<ContactLead, 'id' | 'date'>) => {
+  try {
+    const newLead: ContactLead = {
+      ...lead,
+      id: Date.now().toString(),
+      date: new Date().toISOString(),
+    };
+    const leads = await getLeads();
+    const updated = [newLead, ...leads];
+    
+    await fetchWithFallback('save_leads', { data: updated });
+    await AsyncStorage.setItem('@nextclip_leads', JSON.stringify(updated));
+    return newLead;
+  } catch (e) {
+    console.error('Failed to save lead', e);
+  }
+};
+
+export const getBookings = async (): Promise<BookingLead[]> => {
+  try {
+    const apiBookings = await fetchWithFallback('get_bookings');
+    if (apiBookings && Array.isArray(apiBookings)) return apiBookings;
+    
+    const localData = await AsyncStorage.getItem('@nextclip_bookings');
+    return localData ? JSON.parse(localData) : [];
+  } catch {
+    return [];
+  }
+};
+
+export const saveBooking = async (booking: Omit<BookingLead, 'id' | 'createdAt' | 'status'> & { id?: string, status?: string }) => {
+  try {
+    const bookings = await getBookings();
+    let updated = [...bookings];
+    
+    if (booking.id) {
+      const idx = updated.findIndex(b => b.id === booking.id);
+      if (idx !== -1) {
+        updated[idx] = { ...updated[idx], ...booking } as BookingLead;
+      }
+    } else {
+      updated.push({
+        ...booking,
+        status: booking.status || 'pending',
+        id: 'booking-' + Date.now().toString(),
+        createdAt: new Date().toISOString(),
+      } as BookingLead);
+    }
+    
+    await fetchWithFallback('save_bookings', { data: updated });
+    await AsyncStorage.setItem('@nextclip_bookings', JSON.stringify(updated));
+  } catch (e) {
+    console.error('Failed to save booking', e);
+  }
+};
+

@@ -5,14 +5,22 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
-// Pricing Constants
-const PRICES = {
-  booth: 1890,
-  magnets: 1190,
-  stills: 1490,
-  extraBoothThreshold: 300,
-  extraBoothPrice: 1000,
-};
+// Pricing helpers
+function calcBoothPrice(guests: number): number {
+  if (guests <= 300) return 1650;
+  if (guests <= 500) return 1800;
+  if (guests <= 700) return 1950;
+  if (guests < 1000) return 2500;
+  return 3000;
+}
+function calcMagnetsPrice(guests: number): number {
+  if (guests <= 100) return 1200;
+  if (guests <= 200) return 1350;
+  if (guests <= 300) return 1500;
+  if (guests <= 400) return 1600;
+  return 1700;
+}
+const STILLS_PRICE = 1300;
 
 // Hebrew Month dictionary
 const HEBREW_MONTHS = [
@@ -33,6 +41,7 @@ export default function BookingScreen() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [location, setLocation] = useState('');
   const [eventType, setEventType] = useState('חתונה');
   const [notes, setNotes] = useState('');
   const [guests, setGuests] = useState(200);
@@ -87,14 +96,9 @@ export default function BookingScreen() {
   // Pricing Calculation
   const calculatePrice = () => {
     let total = 0;
-    if (services.booth) {
-      total += PRICES.booth;
-      if (guests >= PRICES.extraBoothThreshold) {
-        total += PRICES.extraBoothPrice;
-      }
-    }
-    if (services.magnets) total += PRICES.magnets;
-    if (services.stills) total += PRICES.stills;
+    if (services.booth) total += calcBoothPrice(guests);
+    if (services.magnets) total += calcMagnetsPrice(guests);
+    if (services.stills) total += STILLS_PRICE;
     return total;
   };
 
@@ -142,6 +146,7 @@ export default function BookingScreen() {
 תאריך: ${selectedDate}
 שם: ${name}
 טלפון: ${phone}
+מיקום האירוע: ${location || 'לא צוין'}
 סוג אירוע: ${eventType}
 מוזמנים: ${guests}
 שעות: ${startTime} - ${endTime}
@@ -159,7 +164,7 @@ export default function BookingScreen() {
     try {
       await saveBooking({
         dateStr: selectedDate!,
-        name, phone, email, eventType, notes, startTime, endTime, guests,
+        name, phone, email, location, eventType, notes, startTime, endTime, guests,
         services: Object.keys(services).filter(k => (services as any)[k]),
         totalPrice: calculatePrice(),
       });
@@ -363,9 +368,9 @@ export default function BookingScreen() {
           <Text style={[styles.serviceName, isMobile && styles.serviceNameMobile]}>עמדת צילום AI</Text>
           <Feather name={services.booth ? "check-circle" : "circle"} size={isMobile ? 20 : 24} color={services.booth ? "#3b82f6" : "#64748b"} />
         </View>
-        <Text style={styles.serviceDesc}>עמדת עץ רטרו פרימיום עם מסך מגע והדפסה במקום. מ-1890₪</Text>
-        {services.booth && guests >= PRICES.extraBoothThreshold && (
-          <Text style={styles.serviceNote}>* עקב כמות האורחים הגדולה (מעל {PRICES.extraBoothThreshold}), תתווסף עמדה שנייה אוטומטית למניעת תורים (+1000₪).</Text>
+        <Text style={styles.serviceDesc}>עמדת עץ רטרו פרימיום עם מסך מגע והדפסה במקום. מ-1,650₪</Text>
+        {services.booth && guests > 700 && (
+          <Text style={styles.serviceNote}>* בשל כמות האורחים, יסופקו 2 עמדות צילום AI.</Text>
         )}
       </TouchableOpacity>
 
@@ -374,7 +379,7 @@ export default function BookingScreen() {
           <Text style={[styles.serviceName, isMobile && styles.serviceNameMobile]}>צילום מגנטים</Text>
           <Feather name={services.magnets ? "check-circle" : "circle"} size={isMobile ? 20 : 24} color={services.magnets ? "#3b82f6" : "#64748b"} />
         </View>
-        <Text style={styles.serviceDesc}>מגנטים איכותיים ללא הגבלה במשך האירוע. מ-1190₪</Text>
+        <Text style={styles.serviceDesc}>מגנטים איכותיים ללא הגבלה במשך האירוע. מ-1,200₪</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={[styles.serviceBox, services.stills && styles.serviceBoxActive]} onPress={() => setServices({...services, stills: !services.stills})}>
@@ -382,12 +387,20 @@ export default function BookingScreen() {
           <Text style={[styles.serviceName, isMobile && styles.serviceNameMobile]}>צילום סטילס פרימיום</Text>
           <Feather name={services.stills ? "check-circle" : "circle"} size={isMobile ? 20 : 24} color={services.stills ? "#3b82f6" : "#64748b"} />
         </View>
-        <Text style={styles.serviceDesc}>צלם מקצועי לאורך כל האירוע. מ-1490₪</Text>
+        <Text style={styles.serviceDesc}>צלם מקצועי לאורך כל האירוע. 1,300₪ ל-3 שעות *</Text>
       </TouchableOpacity>
 
       <View style={styles.summaryBox}>
-        <Text style={styles.summaryDesc}>המחיר עשוי להשתנות בהתאם למיקום ודרישות מיוחדות. שריון התאריך יתבצע רק לאחר שיחת אישור.</Text>
+        <Text style={styles.summaryDesc}>המחיר עשוי להשתנות בהתאם למיקום האירוע ודרישות מיוחדות. שריון התאריך יתבצע רק לאחר שיחת אישור.</Text>
       </View>
+      <View style={styles.summaryBox2}>
+        <Text style={styles.summaryTitle2}>כל המחירים הם ל-3 שעות פעילות</Text>
+      </View>
+      {services.stills && (
+        <View style={[styles.summaryBox, { borderColor: '#64748b', backgroundColor: 'rgba(100,116,139,0.08)', marginTop: 12 }]}>
+          <Text style={[styles.summaryDesc, { color: '#94a3b8' }]}>* צילום סטילס מיועד לאירועים בינוניים-גדולים. לא מיועד לחתונות ואירועים קטנים.</Text>
+        </View>
+      )}
     </View>
   );
 
@@ -492,45 +505,88 @@ export default function BookingScreen() {
         {/* Services Selection inside Left Dashboard Column */}
         <Text style={styles.dashboardServicesTitle}>בחירת שירותים לאירוע:</Text>
         <View style={styles.dashboardServicesRow}>
-          <TouchableOpacity 
-            style={[styles.dashboardServiceCard, services.booth && styles.dashboardServiceCardActive]} 
+          <TouchableOpacity
+            style={[styles.dashboardServiceCard, services.booth && styles.dashboardServiceCardActive]}
             onPress={() => setServices({...services, booth: !services.booth})}
           >
             <View style={styles.dashboardServiceIconRow}>
               <Feather name="check" size={14} color={services.booth ? "#fff" : "transparent"} style={styles.dashboardServiceCheck} />
-              <Text style={styles.dashboardServicePrice}>₪1,890</Text>
+              <Text style={styles.dashboardServicePrice}>₪{calcBoothPrice(guests).toLocaleString()}</Text>
+            </View>
+            {/* Booth icons - show 2 when guests > 700 */}
+            <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 4, gap: 4 }}>
+              {Platform.OS === 'web' && (
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="3" y="6" width="18" height="14" rx="2" stroke={services.booth ? "#3b82f6" : "#64748b"} strokeWidth="2"/>
+                  <circle cx="12" cy="13" r="3" stroke={services.booth ? "#3b82f6" : "#64748b"} strokeWidth="2"/>
+                  <path d="M9 6V5a1 1 0 011-1h4a1 1 0 011 1v1" stroke={services.booth ? "#3b82f6" : "#64748b"} strokeWidth="2"/>
+                </svg>
+              )}
+              {Platform.OS === 'web' && guests > 700 && (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="3" y="6" width="18" height="14" rx="2" stroke={services.booth ? "#60a5fa" : "#475569"} strokeWidth="2" strokeDasharray="3 1"/>
+                  <circle cx="12" cy="13" r="3" stroke={services.booth ? "#60a5fa" : "#475569"} strokeWidth="2"/>
+                  <path d="M9 6V5a1 1 0 011-1h4a1 1 0 011 1v1" stroke={services.booth ? "#60a5fa" : "#475569"} strokeWidth="2"/>
+                </svg>
+              )}
             </View>
             <Text style={styles.dashboardServiceText}>עמדת צילום AI</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.dashboardServiceCard, services.magnets && styles.dashboardServiceCardActive]} 
+          <TouchableOpacity
+            style={[styles.dashboardServiceCard, services.magnets && styles.dashboardServiceCardActive]}
             onPress={() => setServices({...services, magnets: !services.magnets})}
           >
             <View style={styles.dashboardServiceIconRow}>
               <Feather name="check" size={14} color={services.magnets ? "#fff" : "transparent"} style={styles.dashboardServiceCheck} />
-              <Text style={styles.dashboardServicePrice}>₪1,190</Text>
+              <Text style={styles.dashboardServicePrice}>₪{calcMagnetsPrice(guests).toLocaleString()}</Text>
             </View>
-            <Text style={styles.dashboardServiceText}>צילום מגנטים</Text>
+            {Platform.OS === 'web' && (
+              <View style={{ alignItems: 'center', marginBottom: 4 }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6 4h4v8a2 2 0 004 0V4h4v8a6 6 0 01-12 0V4z" stroke={services.magnets ? "#3b82f6" : "#64748b"} strokeWidth="2" strokeLinejoin="round"/>
+                  <path d="M4 4h4M16 4h4" stroke={services.magnets ? "#3b82f6" : "#64748b"} strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </View>
+            )}
+            <Text style={styles.dashboardServiceText}>מגנטים</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.dashboardServiceCard, services.stills && styles.dashboardServiceCardActive]} 
+          <TouchableOpacity
+            style={[styles.dashboardServiceCard, services.stills && styles.dashboardServiceCardActive]}
             onPress={() => setServices({...services, stills: !services.stills})}
           >
             <View style={styles.dashboardServiceIconRow}>
               <Feather name="check" size={14} color={services.stills ? "#fff" : "transparent"} style={styles.dashboardServiceCheck} />
-              <Text style={styles.dashboardServicePrice}>₪1,490</Text>
+              <Text style={styles.dashboardServicePrice}>₪{STILLS_PRICE.toLocaleString()}</Text>
             </View>
-            <Text style={styles.dashboardServiceText}>צילום סטילס פרימיום</Text>
+            {Platform.OS === 'web' && (
+              <View style={{ alignItems: 'center', marginBottom: 4 }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="2" y="7" width="20" height="13" rx="2" stroke={services.stills ? "#3b82f6" : "#64748b"} strokeWidth="2"/>
+                  <circle cx="12" cy="13.5" r="2.5" stroke={services.stills ? "#3b82f6" : "#64748b"} strokeWidth="2"/>
+                  <path d="M8 7V5.5A1.5 1.5 0 019.5 4h5A1.5 1.5 0 0116 5.5V7" stroke={services.stills ? "#3b82f6" : "#64748b"} strokeWidth="2"/>
+                  <circle cx="18" cy="10" r="1" fill={services.stills ? "#3b82f6" : "#64748b"}/>
+                </svg>
+              </View>
+            )}
+            <Text style={styles.dashboardServiceText}>סטילס *</Text>
           </TouchableOpacity>
         </View>
 
-        {services.booth && guests >= PRICES.extraBoothThreshold && (
+        {services.booth && guests > 700 && (
           <View style={styles.extraBoothBanner}>
             <Feather name="info" size={16} color="#fbbf24" style={{ marginLeft: 8 }} />
             <Text style={styles.extraBoothBannerText}>
-              עקב כמות האורחים הגדולה, תתווסף עמדת צילום AI שנייה אוטומטית (+₪1,000)
+              עקב כמות האורחים הגדולה, יסופקו 2 עמדות צילום AI למניעת תורים
+            </Text>
+          </View>
+        )}
+        {services.stills && (
+          <View style={[styles.extraBoothBanner, { borderColor: '#64748b', backgroundColor: 'rgba(100,116,139,0.1)' }]}>
+            <Feather name="info" size={16} color="#94a3b8" style={{ marginLeft: 8 }} />
+            <Text style={[styles.extraBoothBannerText, { color: '#94a3b8' }]}>
+              * צילום סטילס מיועד לאירועים בינוניים-גדולים (לא חתונות ואירועים קטנים)
             </Text>
           </View>
         )}
@@ -572,14 +628,24 @@ export default function BookingScreen() {
           />
 
           <Text style={styles.dashboardLabel}>אמייל:</Text>
-          <TextInput 
-            style={styles.dashboardInput} 
-            value={email} 
-            onChangeText={setEmail} 
-            textAlign="right" 
+          <TextInput
+            style={styles.dashboardInput}
+            value={email}
+            onChangeText={setEmail}
+            textAlign="right"
             keyboardType="email-address"
-            placeholder="אמייל" 
-            placeholderTextColor="#888" 
+            placeholder="אמייל"
+            placeholderTextColor="#888"
+          />
+
+          <Text style={styles.dashboardLabel}>מיקום האירוע:</Text>
+          <TextInput
+            style={styles.dashboardInput}
+            value={location}
+            onChangeText={setLocation}
+            textAlign="right"
+            placeholder="כתובת האולם / מקום האירוע"
+            placeholderTextColor="#888"
           />
 
           <Text style={styles.dashboardLabel}>סוג האירוע:</Text>
@@ -675,22 +741,22 @@ export default function BookingScreen() {
             {services.booth && (
               <View style={styles.bottomBarServiceCard}>
                 <Text style={styles.bottomBarCardTitle}>עמדת צילום AI</Text>
-                <Text style={styles.bottomBarCardSubtitle}>{guests >= 300 ? "2 עמדות צילום" : "עמדת צילום 1"}</Text>
-                <Text style={styles.bottomBarCardPrice}>₪{(PRICES.booth + (guests >= PRICES.extraBoothThreshold ? PRICES.extraBoothPrice : 0)).toLocaleString()}</Text>
+                <Text style={styles.bottomBarCardSubtitle}>{guests > 700 ? "2 עמדות צילום" : "עמדת צילום"}</Text>
+                <Text style={styles.bottomBarCardPrice}>₪{calcBoothPrice(guests).toLocaleString()}</Text>
               </View>
             )}
             {services.magnets && (
               <View style={styles.bottomBarServiceCard}>
-                <Text style={styles.bottomBarCardTitle}>צילום מגנטים</Text>
+                <Text style={styles.bottomBarCardTitle}>מגנטים</Text>
                 <Text style={styles.bottomBarCardSubtitle}>ללא הגבלה</Text>
-                <Text style={styles.bottomBarCardPrice}>₪{PRICES.magnets.toLocaleString()}</Text>
+                <Text style={styles.bottomBarCardPrice}>₪{calcMagnetsPrice(guests).toLocaleString()}</Text>
               </View>
             )}
             {services.stills && (
               <View style={styles.bottomBarServiceCard}>
                 <Text style={styles.bottomBarCardTitle}>צילום סטילס</Text>
-                <Text style={styles.bottomBarCardSubtitle}>צלם פרימיום</Text>
-                <Text style={styles.bottomBarCardPrice}>₪{PRICES.stills.toLocaleString()}</Text>
+                <Text style={styles.bottomBarCardSubtitle}>3 שעות</Text>
+                <Text style={styles.bottomBarCardPrice}>₪{STILLS_PRICE.toLocaleString()}</Text>
               </View>
             )}
           </View>
@@ -1205,7 +1271,14 @@ const styles = StyleSheet.create<any>({
     borderRadius: 12, borderWidth: 1, borderColor: '#10b981',
     alignItems: 'center'
   },
+  summaryBox2: {
+    marginTop: 20, padding: 20,
+    backgroundColor: 'rgba(224, 231, 161, 0.17)',
+    borderRadius: 12, borderWidth: 1, borderColor: '#fbbf24',
+    alignItems: 'center'
+  },
   summaryTitle: { color: '#10b981', fontSize: 16, marginBottom: 8 },
+  summaryTitle2: { color: '#fbbf24', fontSize: 16, marginBottom: 8 },
   summaryPrice: { color: '#10b981', fontSize: 36, fontWeight: 'bold', marginBottom: 8 },
   summaryDesc: { color: '#6ee7b7', fontSize: 12, textAlign: 'center' },
 

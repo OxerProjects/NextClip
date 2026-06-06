@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   scrollSequence: {
-    height: 6000, // Increased to give a longer pause after features animate in
+    height: 2500,
   },
   stickyContainer: {
     height: Platform.OS === 'web' ? ('100vh' as any) : screenHeight,

@@ -124,205 +124,232 @@ function WoodenFrame({ uri, size, tilt }: { uri: string; size: number; tilt: str
 
 // ─── Clothesline (magnets) ────────────────────────────────────────────────────
 
-function ClotheslineGallery({ images, screenWidth, isMobile }: { images: string[]; screenWidth: number; isMobile: boolean }) {
-  const photoW = isMobile ? 130 : 170;
-  const photoH = Math.round(photoW * 1.3);
-  const tilts = [-3, 1.5, -1.5, 2.5];
-  const ropeY = 48;
-
+// Classic natural-wood spring clothespin, front view, clamping the twine.
+function Clothespin({ tilt = 0 }: { tilt?: number }) {
+  const W = 13, H = 30;
   return (
-    <View style={{ width: '100%', backgroundColor: Colors.dark.background, paddingBottom: 32, position: 'relative' }}>
-      {/* rope anchors + rope */}
-      <View style={{ position: 'absolute', top: ropeY, left: 0, right: 0, height: 3,
-        backgroundColor: '#4B5563',
-        ...Platform.select({ web: { boxShadow: '0 2px 6px rgba(0,0,0,0.7), 0 -1px 2px rgba(255,255,255,0.05)' } as any }),
-      }} />
-      {/* Wall hooks */}
-      {[16, screenWidth - 40].map((x, i) => (
-        <View key={i} style={{ position: 'absolute', top: ropeY - 10, left: i === 0 ? 16 : undefined, right: i === 1 ? 16 : undefined,
-          width: 14, height: 22, backgroundColor: '#6B7280', borderRadius: 7,
-          ...Platform.select({ web: { boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)' } as any }),
-        }} />
-      ))}
+    <div style={{
+      width: W, height: H, position: 'relative',
+      transform: `rotate(${tilt}deg)`,
+      filter: 'drop-shadow(1px 3px 3px rgba(0,0,0,0.45))',
+      zIndex: 3,
+    } as any}>
+      {/* left wooden half */}
+      <div style={{
+        position: 'absolute', left: 0, top: 0, width: W / 2 - 0.4, height: H,
+        borderRadius: `${W / 2}px ${W * 0.18}px ${W * 0.28}px ${W / 2}px`,
+        background: 'linear-gradient(95deg, #B68E54 0%, #E3C690 28%, #D2B176 60%, #B68E54 100%)',
+      } as any} />
+      {/* right wooden half */}
+      <div style={{
+        position: 'absolute', right: 0, top: 0, width: W / 2 - 0.4, height: H,
+        borderRadius: `${W * 0.18}px ${W / 2}px ${W / 2}px ${W * 0.28}px`,
+        background: 'linear-gradient(265deg, #A9824A 0%, #DBBC84 32%, #CBAA70 62%, #A9824A 100%)',
+      } as any} />
+      {/* center seam */}
+      <div style={{
+        position: 'absolute', left: '50%', top: 1, width: 0.8, height: H - 2, marginLeft: -0.4,
+        background: 'rgba(90,62,28,0.5)',
+      } as any} />
+      {/* metal spring band */}
+      <div style={{
+        position: 'absolute', left: -0.5, right: -0.5, top: H * 0.42, height: 3.2,
+        borderRadius: 2,
+        background: 'linear-gradient(to bottom, #E8E8EC, #9A9AA0 55%, #6E6E74)',
+        boxShadow: '0 1px 1px rgba(0,0,0,0.35)',
+      } as any} />
+    </div>
+  );
+}
 
-      <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-start', paddingHorizontal: 24, paddingTop: 8 }}>
-        {images.map((uri, i) => {
-          const tilt = tilts[i % tilts.length];
+function ClotheslineGallery({ images, screenWidth, isMobile }: { images: string[]; screenWidth: number; isMobile: boolean }) {
+  const photoW   = isMobile ? 104 : 142;
+  const photoH   = Math.round(photoW * 1.26);
+  // subtle, orderly tilts
+  const tilts    = [-2.5, 1.5, -2, 2.5, -1.5, 2, -2.5, 1.5];
+  const pinTilts = [0, -1, 1, -0.5, 1, -1, 0.5, -1];
+
+  // gentle parabola
+  const sagPx    = isMobile ? 34 : 46;
+  const ropeTopY = 30;
+
+  const parabolaY = (x: number, W: number) => ropeTopY + sagPx * 4 * (x / W) * (1 - x / W);
+
+  const row1 = images;
+  const row2 = [...images].reverse();
+
+  const RopeRow = ({ rowImages, rowIndex }: { rowImages: string[]; rowIndex: number }) => {
+    const n   = rowImages.length;
+    const W   = screenWidth;
+
+    // cluster toward centre, photos slightly overlapping like the reference
+    const step      = isMobile ? photoW * 0.74 : photoW * 0.86;
+    const totalSpan = step * (n - 1);
+    const centres   = rowImages.map((_, i) => W / 2 - totalSpan / 2 + i * step);
+
+    const containerH = ropeTopY + sagPx + photoH + 36;
+
+    const ropePath = `M 0,${ropeTopY} Q ${W / 2},${ropeTopY + sagPx} ${W},${ropeTopY}`;
+
+    if (Platform.OS === 'web') {
+      return (
+        <div style={{ position: 'relative', width: '100%', height: containerH, marginBottom: rowIndex === 0 ? 14 : 0 } as any}>
+
+          {/* SVG twine — thin, pale jute */}
+          <svg width="100%" height={containerH} style={{ position: 'absolute', top: 0, left: 0 } as any}>
+            <path d={ropePath} fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth="3.5" strokeLinecap="round" transform="translate(0,1.5)" />
+            <path d={ropePath} fill="none" stroke="#C9B492" strokeWidth="2.4" strokeLinecap="round" />
+            <path d={ropePath} fill="none" stroke="#9C835E" strokeWidth="2.4" strokeLinecap="round" strokeDasharray="2 4" opacity="0.55" />
+            <path d={ropePath} fill="none" stroke="rgba(255,248,225,0.5)" strokeWidth="0.8" strokeLinecap="round" transform="translate(0,-0.6)" />
+          </svg>
+
+          {/* Each photo hangs from the rope, gripped by a clothespin */}
+          {rowImages.map((uri, i) => {
+            const cx    = centres[i];
+            const ropey = parabolaY(cx, W);
+            const tilt  = tilts[(i + rowIndex * 3) % tilts.length];
+
+            return (
+              <div key={i} style={{
+                position: 'absolute',
+                left: cx - photoW / 2,
+                top: ropey,            // pivot sits exactly on the twine
+                width: photoW,
+                transformOrigin: 'top center',
+                transform: `rotate(${tilt}deg)`,
+                zIndex: i + 1,
+              } as any}>
+                {/* Photo — top edge tucked just under the twine */}
+                <div style={{
+                  width: photoW, height: photoH,
+                  marginTop: 6,
+                  backgroundColor: '#fff',
+                  padding: 5,
+                  position: 'relative',
+                  boxShadow: '3px 11px 26px rgba(0,0,0,0.55), -2px 3px 9px rgba(0,0,0,0.28)',
+                } as any}>
+                  <div style={{
+                    position: 'absolute', inset: 4,
+                    border: '2px dashed #1a1a1a',
+                    pointerEvents: 'none',
+                  } as any} />
+                  <img src={uri} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' } as any} />
+                </div>
+
+                {/* Clothespin straddles the twine and clamps the photo's top edge */}
+                <div style={{
+                  position: 'absolute', top: -16, left: '50%',
+                  transform: `translateX(-50%) rotate(${pinTilts[i % pinTilts.length]}deg)`,
+                  zIndex: 5,
+                } as any}>
+                  <Clothespin />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    // Native fallback — simple row
+    return (
+      <View style={{ width: '100%', position: 'relative', height: containerH, marginBottom: rowIndex === 0 ? 14 : 0 }}>
+        <View style={{ position: 'absolute', top: ropeTopY + sagPx / 2, left: 0, right: 0, height: 3, backgroundColor: '#C9B492', borderRadius: 2 }} />
+        {rowImages.map((uri, i) => {
+          const cx   = centres[i];
+          const tilt = tilts[(i + rowIndex * 3) % tilts.length];
           return (
-            <View key={i} style={{ alignItems: 'center', marginHorizontal: isMobile ? 10 : 18 }}>
-              {/* string from rope */}
-              <View style={{ width: 1, height: 18, backgroundColor: '#6B7280' }} />
-              {/* clip */}
-              <View style={{ alignItems: 'center', zIndex: 3, marginBottom: -3 }}>
-                <View style={{ width: 5, height: 14, backgroundColor: '#9CA3AF', borderRadius: 2, borderWidth: 1, borderColor: '#6B7280' }} />
-                <View style={{ width: 18, height: 8, backgroundColor: '#D1D5DB', borderRadius: 2, borderWidth: 1, borderColor: '#9CA3AF', marginTop: -2,
-                  ...Platform.select({ web: { boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.3)' } as any }),
-                }} />
-              </View>
-              {/* Polaroid photo */}
-              <View style={[{
-                width: photoW, height: photoH + 28,
-                backgroundColor: '#FAFAFA',
-                transform: [{ rotate: `${tilt}deg` }],
-                padding: 6, paddingBottom: 0,
-                zIndex: 2,
-              }, Platform.select({ web: { boxShadow: '2px 10px 24px rgba(0,0,0,0.5), -1px 2px 6px rgba(0,0,0,0.2)' } as any })]}>
-                <Image source={{ uri }} style={{ width: '100%', height: photoH }} resizeMode="cover" />
-                {/* Polaroid caption area */}
-                <View style={{ height: 28, alignItems: 'center', justifyContent: 'center' }}>
-                  <View style={{ width: '60%', height: 2, backgroundColor: '#E5E7EB', borderRadius: 1 }} />
-                </View>
+            <View key={i} style={{
+              position: 'absolute', left: cx - photoW / 2, top: ropeTopY + sagPx / 2,
+              width: photoW, alignItems: 'center', transform: [{ rotate: `${tilt}deg` }],
+            }}>
+              <View style={{ width: 12, height: 26, backgroundColor: '#D2B176', borderRadius: 5, zIndex: 2 }} />
+              <View style={{ width: photoW, height: photoH, backgroundColor: '#fff', padding: 5, marginTop: -10 }}>
+                <Image source={{ uri }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
               </View>
             </View>
           );
         })}
       </View>
+    );
+  };
+
+  return (
+    <View style={{ width: '100%', backgroundColor: Colors.dark.background, paddingTop: 20, paddingBottom: 52 }}>
+      <RopeRow rowImages={row1} rowIndex={0} />
+      <RopeRow rowImages={row2} rowIndex={1} />
     </View>
   );
 }
 
-// ─── Film marquee (stills) ────────────────────────────────────────────────────
+// ─── Film strip (stills) — static, full width ─────────────────────────────────
 
-function FilmMarquee({ images, isMobile }: { images: string[]; isMobile: boolean }) {
-  const frameW = isMobile ? 180 : 240;
-  const frameH = Math.round(frameW * 0.7);
-  const perfH = 28;
-  const perfCount = 6; // perfs per frame
+function FilmMarquee({ images, screenWidth, isMobile }: { images: string[]; screenWidth: number; isMobile: boolean }) {
+  const perfH = 24;
+  const perfCount = 5;
+  const frameW = Math.floor(screenWidth / images.length);
+  const frameH = Math.round(frameW * 0.65);
 
-  // Repeat enough for seamless loop — must duplicate exactly once
-  const track = [...images, ...images, ...images, ...images];
-  const half = track.length / 2; // half = one full loop width
-
-  useEffect(() => {
-    if (Platform.OS === 'web' && typeof document !== 'undefined') {
-      if (!document.getElementById('film-marquee-style')) {
-        const s = document.createElement('style');
-        s.id = 'film-marquee-style';
-        s.textContent = `
-          @keyframes filmRoll {
-            0%   { transform: translateX(0); }
-            100% { transform: translateX(calc(-${frameW}px * ${track.length / 2})); }
-          }
-          .film-track {
-            animation: filmRoll ${track.length * 1.6}s linear infinite;
-            display: flex;
-            width: max-content;
-            will-change: transform;
-          }
-          .film-track:hover { animation-play-state: paused; }
-        `;
-        document.head.appendChild(s);
-      }
-    }
-  }, []);
-
-  const Perf = ({ idx }: { idx: number }) => (
-    <div style={{
-      width: frameW,
-      height: perfH,
-      backgroundColor: '#060606',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-around',
-      paddingLeft: 8,
-      paddingRight: 8,
-      flexShrink: 0,
-      borderLeft: `2px solid #0d0d0d`,
-      boxSizing: 'border-box',
-    } as any}>
-      {Array.from({ length: perfCount }).map((_, j) => (
-        <div key={j} style={{
-          width: Math.floor(frameW / perfCount / 2.2),
-          height: 14,
-          borderRadius: 3,
-          backgroundColor: '#181818',
-          border: '1px solid #252525',
-        } as any} />
+  const PerfRow = ({ frameWidth }: { frameWidth: number }) => (
+    <View style={{ flexDirection: 'row', backgroundColor: '#060606', height: perfH }}>
+      {images.map((_, i) => (
+        <View key={i} style={{ width: frameWidth, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingHorizontal: 4 }}>
+          {Array.from({ length: perfCount }).map((__, j) => (
+            <View key={j} style={{ width: Math.floor(frameWidth / perfCount / 2.4), height: 14, borderRadius: 3, backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#282828' }} />
+          ))}
+        </View>
       ))}
-    </div>
+    </View>
   );
 
   if (Platform.OS === 'web') {
     return (
-      <View style={{
-        width: '100%',
-        backgroundColor: Colors.dark.background,
-        paddingVertical: 32,
-        overflow: 'hidden' as any,
-      }}>
-        {/* Tilted film strip wrapper */}
-        <div style={{
-          transform: 'rotate(-2deg) scaleX(1.08)',
-          transformOrigin: 'center center',
-          overflow: 'hidden',
-          backgroundColor: '#0d0d0d',
-        } as any}>
-          {/* All three rows scroll together as one unit */}
-          <div className="film-track">
-            {/* Top perfs */}
-            {track.map((_, i) => <Perf key={`tp-${i}`} idx={i} />)}
+      <View style={{ width: '100%', backgroundColor: Colors.dark.background, paddingVertical: 28, overflow: 'hidden' as any }}>
+        <div style={{ transform: 'rotate(-2deg) scaleX(1.05)', transformOrigin: 'center center', backgroundColor: '#0a0a0a' } as any}>
+          {/* top perfs */}
+          <div style={{ display: 'flex', backgroundColor: '#060606', height: perfH, alignItems: 'center' } as any}>
+            {images.map((_, i) => (
+              <div key={i} style={{ width: frameW, display: 'flex', justifyContent: 'space-around', alignItems: 'center', padding: '0 4px', flexShrink: 0 } as any}>
+                {Array.from({ length: perfCount }).map((__, j) => (
+                  <div key={j} style={{ width: Math.floor(frameW / perfCount / 2.4), height: 14, borderRadius: 3, backgroundColor: '#1a1a1a', border: '1px solid #282828' } as any} />
+                ))}
+              </div>
+            ))}
           </div>
-          <div className="film-track" style={{ marginTop: -1 } as any}>
-            {/* Images */}
-            {track.map((uri, i) => (
-              <div key={`img-${i}`} style={{
-                width: frameW,
-                height: frameH,
-                flexShrink: 0,
-                borderLeft: '2px solid #060606',
-                position: 'relative',
-                boxSizing: 'border-box',
-              } as any}>
-                <img src={uri} style={{
-                  width: '100%', height: '100%',
-                  objectFit: 'cover', display: 'block',
-                  filter: 'contrast(1.08) saturate(0.88)',
-                } as any} />
-                <div style={{
-                  position: 'absolute', bottom: 5, left: 7,
-                  color: '#f97316', fontSize: 9,
-                  fontFamily: 'monospace', letterSpacing: 1,
-                  textShadow: '0 0 4px rgba(249,115,22,0.6)',
-                } as any}>
-                  {String((i % images.length) + 1).padStart(2, '0')}A
+          {/* images */}
+          <div style={{ display: 'flex' } as any}>
+            {images.map((uri, i) => (
+              <div key={i} style={{ width: frameW, height: frameH, flexShrink: 0, borderRight: '2px solid #060606', position: 'relative' } as any}>
+                <img src={uri} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'contrast(1.05) saturate(0.9)' } as any} />
+                <div style={{ position: 'absolute', bottom: 4, left: 6, color: '#f97316', fontSize: 8, fontFamily: 'monospace', letterSpacing: 1, opacity: 0.8 } as any}>
+                  {String(i + 1).padStart(2, '0')}A
                 </div>
               </div>
             ))}
           </div>
-          <div className="film-track" style={{ marginTop: -1 } as any}>
-            {/* Bottom perfs */}
-            {track.map((_, i) => <Perf key={`bp-${i}`} idx={i} />)}
+          {/* bottom perfs */}
+          <div style={{ display: 'flex', backgroundColor: '#060606', height: perfH, alignItems: 'center' } as any}>
+            {images.map((_, i) => (
+              <div key={i} style={{ width: frameW, display: 'flex', justifyContent: 'space-around', alignItems: 'center', padding: '0 4px', flexShrink: 0 } as any}>
+                {Array.from({ length: perfCount }).map((__, j) => (
+                  <div key={j} style={{ width: Math.floor(frameW / perfCount / 2.4), height: 14, borderRadius: 3, backgroundColor: '#1a1a1a', border: '1px solid #282828' } as any} />
+                ))}
+              </div>
+            ))}
           </div>
         </div>
       </View>
     );
   }
 
-  // Native fallback
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ backgroundColor: Colors.dark.background }}>
-      <View>
-        <View style={{ flexDirection: 'row' }}>
-          {track.map((_, i) => (
-            <View key={i} style={{ width: frameW, height: perfH, backgroundColor: '#060606', flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingHorizontal: 8 }}>
-              {Array.from({ length: perfCount }).map((__, j) => <View key={j} style={{ width: 16, height: 14, borderRadius: 3, backgroundColor: '#181818', borderWidth: 1, borderColor: '#252525' }} />)}
-            </View>
-          ))}
-        </View>
-        <View style={{ flexDirection: 'row' }}>
-          {track.map((uri, i) => (
-            <Image key={i} source={{ uri }} style={{ width: frameW, height: frameH }} resizeMode="cover" />
-          ))}
-        </View>
-        <View style={{ flexDirection: 'row' }}>
-          {track.map((_, i) => (
-            <View key={i} style={{ width: frameW, height: perfH, backgroundColor: '#060606', flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingHorizontal: 8 }}>
-              {Array.from({ length: perfCount }).map((__, j) => <View key={j} style={{ width: 16, height: 14, borderRadius: 3, backgroundColor: '#181818', borderWidth: 1, borderColor: '#252525' }} />)}
-            </View>
-          ))}
-        </View>
+    <View style={{ width: '100%', backgroundColor: Colors.dark.background, paddingVertical: 20 }}>
+      <PerfRow frameWidth={frameW} />
+      <View style={{ flexDirection: 'row' }}>
+        {images.map((uri, i) => <Image key={i} source={{ uri }} style={{ width: frameW, height: frameH }} resizeMode="cover" />)}
       </View>
-    </ScrollView>
+      <PerfRow frameWidth={frameW} />
+    </View>
   );
 }
 
@@ -331,7 +358,7 @@ function FilmMarquee({ images, isMobile }: { images: string[]; isMobile: boolean
 function Gallery({ images, type, isMobile, screenWidth }: {
   images: string[]; type: 'wood' | 'clothesline' | 'film'; isMobile: boolean; screenWidth: number;
 }) {
-  if (type === 'film') return <FilmMarquee images={images} isMobile={isMobile} />;
+  if (type === 'film') return <FilmMarquee images={images} screenWidth={screenWidth} isMobile={isMobile} />;
   if (type === 'clothesline') return <ClotheslineGallery images={images} screenWidth={screenWidth} isMobile={isMobile} />;
 
   // wood

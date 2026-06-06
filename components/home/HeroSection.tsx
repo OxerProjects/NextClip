@@ -18,9 +18,8 @@ const FEATURES = [
 function FeatureItem({ item, index, scrollY, isMobile }: { item: any, index: number, scrollY?: SharedValue<number>, isMobile: boolean }) {
   const animatedStyle = useAnimatedStyle(() => {
     const y = scrollY?.value || 0;
-    // Start appearing after the booth zooms out (e.g. from 2800)
-    const startY = 2800 + index * 150;
-    const endY = startY + 400;
+    const startY = 1150 + index * 60;
+    const endY = startY + 160;
 
     const opacity = interpolate(y, [startY, endY], [0, 1], Extrapolate.CLAMP);
     const translateX = interpolate(y, [startY, endY], [isMobile ? 0 : 50, 0], Extrapolate.CLAMP);
@@ -46,9 +45,8 @@ function FeatureItem({ item, index, scrollY, isMobile }: { item: any, index: num
 function FeaturesHeader({ scrollY, isMobile }: { scrollY?: SharedValue<number>, isMobile: boolean }) {
   const animatedStyle = useAnimatedStyle(() => {
     const y = scrollY?.value || 0;
-    // Appears slightly before or exactly with the first feature item (startY = 2650)
-    const startY = 2650;
-    const endY = startY + 400;
+    const startY = 1100;
+    const endY = startY + 160;
 
     const opacity = interpolate(y, [startY, endY], [0, 1], Extrapolate.CLAMP);
     const translateX = interpolate(y, [startY, endY], [isMobile ? 0 : 50, 0], Extrapolate.CLAMP);
@@ -89,15 +87,14 @@ export function HeroSection({ scrollY }: { scrollY?: SharedValue<number> }) {
 
   const textStyle = useAnimatedStyle(() => {
     const y = scrollY?.value || 0;
-    const opacity = interpolate(y, [0, 500], [1, 0], Extrapolate.CLAMP);
-    const translateY = interpolate(y, [0, 500], [0, -100], Extrapolate.CLAMP);
+    const opacity = interpolate(y, [0, 200], [1, 0], Extrapolate.CLAMP);
+    const translateY = interpolate(y, [0, 200], [0, -100], Extrapolate.CLAMP);
     return { opacity, transform: [{ translateY }] };
   });
 
   const arrowStyle = useAnimatedStyle(() => {
     const y = scrollY?.value || 0;
-    // Arrow remains visible all along the first section scrolling model sequence, fading out at the end
-    const opacity = interpolate(y, [5200, 5800], [1, 0], Extrapolate.CLAMP);
+    const opacity = interpolate(y, [2100, 2400], [1, 0], Extrapolate.CLAMP);
     return {
       opacity,
       transform: [{ translateY: bobAnim.value }],
@@ -108,9 +105,8 @@ export function HeroSection({ scrollY }: { scrollY?: SharedValue<number> }) {
   const modelStyle = useAnimatedStyle(() => {
     const y = scrollY?.value || 0;
 
-    // On mobile, the 3D model starts shifted down by 220px and rises up to 0px
     const translateY = isMobile
-      ? interpolate(y, [0, 1000], [220, 0], Extrapolate.CLAMP)
+      ? interpolate(y, [0, 400], [220, 0], Extrapolate.CLAMP)
       : 0;
 
     return {
