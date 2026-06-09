@@ -7,6 +7,11 @@ export function ContactSection() {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
 
+  // Size the 5 circular contact icons so they always fit one row, shrinking only
+  // on very narrow phones (keeps them at the full 54px on most devices).
+  const iconGap = 14;
+  const iconSize = Math.max(40, Math.min(54, Math.floor((width - 40 - iconGap * 4) / 5)));
+
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -127,12 +132,12 @@ export function ContactSection() {
             {renderForm()}
 
             {/* Mobile Contact Icons Row - Icons grouped together beautifully */}
-            <View style={styles.mobileIconsRow}>
-              <IconButton icon="whatsapp" color="#4ade80" onPress={() => handleOpenLink("https://wa.me/972508474111")} />
-              <IconButton icon="phone-alt" color="#5eead4" onPress={() => handleOpenLink("tel:0508474111")} />
-              <IconButton icon="envelope" color="#ff8a65" onPress={() => handleOpenLink("mailto:Next.Clip.St@gmail.com")} />
-              <IconButton icon="instagram" color="#ec4899" onPress={() => handleOpenLink("https://www.instagram.com/next_clip_studio/")} />
-              <IconButton icon="tiktok" color="#818cf8" onPress={() => handleOpenLink("https://www.tiktok.com/@next_clip_studio?_r=1&_t=ZS-912ypQaG6qW")} />
+            <View style={[styles.mobileIconsRow, { gap: iconGap }]}>
+              <IconButton icon="whatsapp" color="#4ade80" size={iconSize} onPress={() => handleOpenLink("https://wa.me/972508474111")} />
+              <IconButton icon="phone-alt" color="#5eead4" size={iconSize} onPress={() => handleOpenLink("tel:0508474111")} />
+              <IconButton icon="envelope" color="#ff8a65" size={iconSize} onPress={() => handleOpenLink("mailto:Next.Clip.St@gmail.com")} />
+              <IconButton icon="instagram" color="#ec4899" size={iconSize} onPress={() => handleOpenLink("https://www.instagram.com/next_clip_studio/")} />
+              <IconButton icon="tiktok" color="#818cf8" size={iconSize} onPress={() => handleOpenLink("https://www.tiktok.com/@next_clip_studio?_r=1&_t=ZS-912ypQaG6qW")} />
             </View>
           </View>
         ) : (
@@ -168,10 +173,10 @@ function ContactCard({ icon, color, text, onPress }: { icon: string, color: stri
   );
 }
 
-function IconButton({ icon, color, onPress }: { icon: string, color: string, onPress?: () => void }) {
+function IconButton({ icon, color, onPress, size = 54 }: { icon: string, color: string, onPress?: () => void, size?: number }) {
   return (
-    <TouchableOpacity style={[styles.iconCircle, { backgroundColor: color }]} onPress={onPress}>
-      <FontAwesome5 name={icon} size={22} color="#000" />
+    <TouchableOpacity style={[styles.iconCircle, { backgroundColor: color, width: size, height: size, borderRadius: size / 2 }]} onPress={onPress}>
+      <FontAwesome5 name={icon} size={Math.round(size * 0.41)} color="#000" />
     </TouchableOpacity>
   );
 }
@@ -301,9 +306,10 @@ const styles = StyleSheet.create({
   // Mobile circular icons row
   mobileIconsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 20,
+    gap: 14,
     width: '100%',
     paddingVertical: 10,
   },

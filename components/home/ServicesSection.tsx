@@ -13,7 +13,7 @@ const SERVICES_DATA = [
   {
     id: 1,
     title: 'מגנטים',
-    text: 'מגנט מעוצב אישית לפי סגנון האירוע, חומרים פרימיום ומסירה מיידית – מזכרת שנשארת לנצח.',
+    text: 'צילום מקצועי והדפסת מגנטים איכותיים בהתאמה אישית במקום, כך שכל רגע מיוחד הופך למזכרת מושלמת.',
     image: '/magnets.png',
     isProminent: false,
     price: '1,200',
@@ -21,7 +21,7 @@ const SERVICES_DATA = [
   {
     id: 2,
     title: 'עמדת צילום AI',
-    text: 'אטרקציה שלא רואים באף אירוע אחר! אפקטי AI מרהיבים, שטיח אדום, תאורה מקצועית ושיתוף מיידי לנייד.',
+    text: 'אטרקציה שלא רואים באף אירוע אחר! עמדת צילום חגיגית המשלבת אפקטי AI מרהיבים, שטיח אדום, תאורה מקצועית ושיתוף מיידי לנייד.',
     image: '/main.png',
     isProminent: true,
     badgeText: 'הבחירה הפופולרית',
@@ -40,6 +40,9 @@ const SERVICES_DATA = [
 export function ServicesSection() {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
+  // Cards stay 3-across down to 768px, but below 1024px each card is too narrow
+  // for a side-by-side price+button footer — stack the footer there too.
+  const isNarrow = width < 1024;
   const router = useRouter();
 
   // Track hovered state for cards and buttons
@@ -196,10 +199,10 @@ export function ServicesSection() {
                 </Text>
 
                 {/* Footer Row: Align Button and Price next to each other */}
-                <View style={StyleSheet.flatten([styles.footerRow, isMobile && styles.mobileFooterRow])}>
+                <View style={StyleSheet.flatten([styles.footerRow, isNarrow && styles.mobileFooterRow])}>
 
                   {/* Price Block */}
-                  <View style={StyleSheet.flatten([styles.priceBlock, isMobile && styles.mobilePriceBlock])}>
+                  <View style={StyleSheet.flatten([styles.priceBlock, isNarrow && styles.mobilePriceBlock])}>
                     <Text style={styles.priceLabel}>החל מ-</Text>
                     <View style={styles.priceTextRow}>
                       <Text style={StyleSheet.flatten([styles.priceValue, item.isProminent && styles.prominentPriceValue])}>{item.price}</Text>
@@ -218,7 +221,7 @@ export function ServicesSection() {
                     style={StyleSheet.flatten([
                       styles.ctaButton,
                       item.isProminent ? styles.prominentCtaButton : styles.outlineCtaButton,
-                      isMobile ? styles.mobileCtaButton : null,
+                      isNarrow ? styles.mobileCtaButton : null,
                       isBtnHovered ? styles.ctaButtonHovered : null,
                       (item.isProminent && isBtnHovered) ? styles.prominentCtaButtonHovered : null,
                       (!item.isProminent && isBtnHovered) ? styles.outlineCtaButtonHovered : null,
@@ -277,7 +280,7 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row-reverse', // RTL Layout: Magnets (right), Booth (center), Stills (left)
     justifyContent: 'center',
-    alignItems: 'stretch',
+    alignItems: 'flex-start',
     gap: 32,
     maxWidth: 1400,
     width: '100%',
@@ -340,7 +343,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   prominentImageWrapper: {
-    height: 280,
+    height: 240,
   },
   mobileImageWrapper: {
     height: 200,

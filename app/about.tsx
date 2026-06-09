@@ -1,8 +1,8 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, useWindowDimensions, Platform } from 'react-native';
-import { Colors } from '@/constants/theme';
-import { ContactSection } from '@/components/home/ContactSection';
 import { Footer } from '@/components/Footer';
+import { ContactSection } from '@/components/home/ContactSection';
+import { Colors } from '@/constants/theme';
+import React from 'react';
+import { Image, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 export default function AboutScreen() {
   const { width } = useWindowDimensions();
@@ -41,15 +41,21 @@ export default function AboutScreen() {
               </Text>
               
               <Text style={[styles.descriptionText, isMobile && styles.mobileTextAlign]}>
-                הקמנו את NextClip מתוך תשוקה אמיתית להפוך רגעים חולפים לאירועים בלתי נשכחים. אנו מתמחים בפיתוח ויישום פתרונות צילום חכמים מבוססי בינה מלאכותית (AI) ועמדות סלפי יוקרתיות מעץ מלא, המעניקות חוויה אינטראקטיבית וסוחפת לכל האורחים שלכם.
+הקמנו את NextClip מתוך תשוקה אמיתית להפוך רגעים חולפים לזיכרונות בלתי נשכחים, עם דגש על שירות אישי, איכות ללא פשרות ומקצועיות ברמה הגבוהה ביותר.
               </Text>
               
               <Text style={[styles.descriptionText, isMobile && styles.mobileTextAlign]}>
-                החזון שלנו הוא לשלב טכנולוגיה קולנועית פורצת דרך יחד עם שירות חם ומקצועי, כדי שכל תמונה שיוצאת מהאירוע שלכם תרגיש כמו יצירת אמנות. אנו מלווים אתכם לאורך כל הדרך – החל מהתכנון ועד להפקת גלריית אירוע אינטרנטית מרהיבה ואינסופית בזמן אמת.
+אנחנו מתמחים בעמדות צילום לאירועים, שמשלבות חוויה אינטראקטיבית, עיצוב יוקרתי וטכנולוגיה מתקדמת – כדי שכל אורח ייהנה מחוויה חלקה, מהנה ומדויקת.
               </Text>
 
               <Text style={[styles.descriptionText, isMobile && styles.mobileTextAlign]}>
-                העמדות שלנו מיוצרות מעץ איכותי המעניק מראה חמים, יוקרתי וכפרי, לצד טכנולוגיית הדפסה תרמית מהירה במיוחד ואפקטי AI מהדור הבא שישאירו את האורחים שלכם פעורי פה.
+                השירות שלנו שם את הלקוח והאורחים במרכז: ליווי מלא משלב התכנון ועד סוף האירוע, זמינות גבוהה, סבלנות וגישה נעימה לכל אורח, והקפדה על כל פרט קטן, כדי להבטיח חוויה זורמת, מכבדת ומהנה לכל מי שלוקח חלק באירוע.
+              </Text>
+              <Text style={[styles.descriptionText, isMobile && styles.mobileTextAlign]}>
+על האיכות שלנו אנו לא מתפשרים! והיא באה לידי ביטוי בציוד מתקדם, חומרים איכותיים , ותוצרים שנראים מצוין בכל אירוע.
+              </Text>
+              <Text style={[styles.descriptionText, isMobile && styles.mobileTextAlign]}>
+המקצועיות שלנו מורגשת בשטח – בעבודה מסודרת, עמידה בזמנים, ויכולת להפוך כל אירוע לחוויה זורמת ומרשימה.
               </Text>
             </View>
           </View>

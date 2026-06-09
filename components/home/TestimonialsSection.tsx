@@ -1,14 +1,18 @@
-import { Colors } from '@/constants/theme';
 import { FontAwesome } from '@expo/vector-icons';
 import React, { useEffect, useRef } from 'react';
-import { Image, StyleSheet, Text, View, Platform, Animated, useWindowDimensions } from 'react-native';
+import { Animated, Image, Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
+// images: תמונות קטנות שצפות מסביב לכרטיס.
+// שים את הקבצים ב-public/ ופשוט הוסף את שמותיהם כאן.
+// ניתן להוסיף 1-4 תמונות לכל ביקורת.
 const TESTIMONIALS = [
-  { id: 1, name: 'רועי כהן', text: 'פשוט חוויה מדהימה! האורחים בחתונה לא הפסיקו להצטלם והאיכות פסיכית.', rating: 5, avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026024d' },
-  { id: 2, name: 'נועה לוי', text: 'האיכות של התמונות מושלמת. שירות מעל ומעבר, צוות מקצועי שעזר בכל שאלה.', rating: 5, avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d' },
-  { id: 3, name: 'שירן דהן', text: 'ממליצה בחום! העמדה נראית פרימיום ומוסיפה המון לכל אירוע.', rating: 5, avatar: 'https://i.pravatar.cc/150?u=a04258a2462d826712d' },
-  { id: 4, name: 'דניאל אברהם', text: 'שירות מצוין, הגיעו בזמן והכל תקתק כמו שעון. חוויה מעולה.', rating: 4, avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704c' },
-  { id: 5, name: 'אביב גולן', text: 'היה מדהים, כולם עפו על העמדה. מזכרת מושלמת לאורחים שלנו.', rating: 5, avatar: 'https://i.pravatar.cc/150?u=a048581f4e29026701d' },
+  { id: 1, name: 'ורד - מנהלת מחוז דרום ב"כללית"', text: 'היה מהמם! שמעתי הרבה מחמאות על העמדה וכל התמונות שצילמת יצאו מדהימות.', rating: 5, avatar: 'clalit.jpg', images: [] },
+  { id: 2, name: 'עומרי - חברת "INTEL"', text: '', rating: 5, avatar: 'intel.png', images: [] },
+  { id: 3, name: 'מעיין - מנהלת HR בחברת "PLAYTIKA"', text: 'היי היה מעולה, לא יכולה לחכות לשלוח לכולם את התמונות.', rating: 5, avatar: 'playtika.png', images: [] },
+  { id: 4, name: 'רונית', text: 'בוקר טוב עידו, תודה רבה על אתמול אתה פשוט מקסים ואין דברים כמוך. אין ספק שהעמדה עשתה את הבת מצווה!!! נהיננו מאוד הצטלמנו מלאאאא כמו שאתה יודע, השארנו אותך בלי מגנטים. הייתם מדהימים. המון המון תודה‼️', rating: 5, avatar: 'anon.jpg', images: [] },
+  { id: 5, name: 'ליאורה - עמותת "להושיט יד"', text: 'תודה רבה רבה רבה על אתמול!! עשיתם ליהונתן ובכללי לכולם ערב מושלם! לפי יהונתן ״הערב הכי טוב שהיה לי בחיים!״ אין עליכם!!!!', rating: 5, avatar: 'yad.png', images: ['lev.jpeg'] },
+  { id: 6, name: 'יצחק ונופך', text: 'עידו ❤️ חייב לכתוב לכם אחרי התאוששות ואוו !!! שמע כמה פרגונים על העמדה אנשים אהבו את זה ברמות, לקחו ממני מספר ויותר מהעמדה פירגנו לכם על העבודה על הסבלנות על הנעימות שלכם!! זה מה זה לא מובן מאליו שמע אנחנו שמחים רצח על הבחירה 🤍', rating: 5, avatar: 'wedding.jpg', images: [] },
+  { id: 7, name: 'מיטל - עמותת "ואהבת"', text: 'היי עידו, רצינו להגיד תודה רבה על האירוע אתמול, העמדה הייתה מדהימה החיילים והמשפחות נהנו מאוד, התמונות יצאו מעולות ומגניבות, והיחס שלך היה פשוט מקסים. תודה על ההשקעה, הסבלנות והלב שהבאת איתך לאירוע ❤️', rating: 5, avatar: 'aavta.png', images: [] },
 ];
 
 function TestimonialCard({ item, index, isMobile }: { item: any, index: number, isMobile: boolean }) {
@@ -74,35 +78,70 @@ function TestimonialCard({ item, index, isMobile }: { item: any, index: number, 
     outputRange: [0, -15],
   });
 
-  // Alternating alignment: Evens on the left, odds on the right (in LTR terms)
   const alignSelf = isMobile ? 'center' : (index % 2 === 0 ? 'flex-start' : 'flex-end');
+  const hasImages = item.images && item.images.length > 0;
+
+  // Positions for up to 4 floating images around the card.
+  // Each entry: [top%, left%, rotate(deg), scale]
+  const floatPositions = [
+    { top: '-18%', left: '-14%',  rotate: '-8deg',  scale: 1    },
+    { top: '55%',  left: '-16%',  rotate: '6deg',   scale: 0.88 },
+    { top: '-18%', right: '-14%', rotate: '8deg',   scale: 0.92 },
+    { top: '55%',  right: '-16%', rotate: '-5deg',  scale: 0.85 },
+  ];
 
   return (
-    <Animated.View 
+    <Animated.View
       ref={viewRef}
       style={[
-        styles.cardContainer, 
+        styles.cardContainer,
         { alignSelf, width: isMobile ? '100%' : '60%' },
-        { opacity: fadeAnim, transform: [{ translateY: translateY }, { translateY: floatY }] }
+        // Extra horizontal padding when images are present so they don't clip
+        hasImages && !isMobile ? { marginHorizontal: 80 } : null,
+        { opacity: fadeAnim, transform: [{ translateY: translateY }, { translateY: floatY }] },
       ]}
     >
+      {/* Floating event photos */}
+      {hasImages && !isMobile && Platform.OS === 'web' && item.images.map((uri: string, i: number) => {
+        const pos = floatPositions[i % floatPositions.length];
+        return (
+          <View
+            key={i}
+            style={[
+              styles.floatPhoto,
+              {
+                top: pos.top as any,
+                left: (pos as any).left ?? undefined,
+                right: (pos as any).right ?? undefined,
+                transform: [{ rotate: pos.rotate }, { scale: pos.scale }],
+              },
+            ]}
+          >
+            <Image source={{ uri }} style={styles.floatPhotoImg} resizeMode="cover" />
+          </View>
+        );
+      })}
+
       <View style={styles.card}>
         <Image source={{ uri: item.avatar }} style={styles.avatar} />
         <Text style={styles.name}>{item.name}</Text>
-        
+
         <View style={styles.stars}>
           {[...Array(5)].map((_, i) => (
-            <FontAwesome
-              key={i}
-              name={i < item.rating ? 'star' : 'star-o'}
-              size={16}
-              color="#FFD700"
-              style={styles.star}
-            />
+            <FontAwesome key={i} name={i < item.rating ? 'star' : 'star-o'} size={16} color="#FFD700" style={styles.star} />
           ))}
         </View>
 
         <Text style={styles.text} numberOfLines={4}>"{item.text}"</Text>
+
+        {/* Mobile: small inline photo row instead of floating */}
+        {hasImages && isMobile && (
+          <View style={styles.mobilePhotoRow}>
+            {item.images.slice(0, 3).map((uri: string, i: number) => (
+              <Image key={i} source={{ uri }} style={styles.mobilePhoto} resizeMode="cover" />
+            ))}
+          </View>
+        )}
       </View>
     </Animated.View>
   );
@@ -190,5 +229,39 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     textAlign: 'center',
-  }
+  },
+  // Floating photo (desktop) — positioned absolutely outside the card
+  floatPhoto: {
+    position: 'absolute',
+    width: 110,
+    height: 110,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.12)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 10,
+    zIndex: 0,
+  },
+  floatPhotoImg: {
+    width: '100%' as any,
+    height: '100%' as any,
+  },
+  // Mobile inline photo strip
+  mobilePhotoRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 16,
+    justifyContent: 'center',
+  },
+  mobilePhoto: {
+    width: 72,
+    height: 72,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
 });

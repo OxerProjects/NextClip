@@ -1,5 +1,3 @@
-import { Colors } from '@/constants/theme';
-import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect } from 'react';
 import { Dimensions, Image, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -53,7 +51,7 @@ export function GalleryMarquee() {
     return (
       <View style={styles.container}>
         <Text style={styles.title}>רגעים מהשטח</Text>
-        <Text style={styles.subtitle}>ככה זה נראה כשהכיף מתחיל. תמונות חיות מהאירועים של NextClip</Text>
+        <Text style={styles.subtitle}>הצצה לרגעים יפים מהאירועים שלכם</Text>
 
         {/* Pure HTML container with direction: 'ltr' to force LTR and align overflow cards on the right */}
         <div style={webStyles.marqueeContainer}>

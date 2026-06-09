@@ -3,11 +3,11 @@ import { Feather } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import React, { useEffect } from 'react';
 import { Image, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Animated, { Extrapolate, interpolate, SharedValue, useAnimatedStyle, useSharedValue, withRepeat, withTiming, withSequence } from 'react-native-reanimated';
+import Animated, { Extrapolate, interpolate, SharedValue, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { Booth3DInline } from './Booth3D';
 
 const FEATURES = [
-  { id: 1, text: 'עמדת סלפי מעץ', icon: 'camera', color: '#FF9800' },
+  { id: 1, text: 'עמדות רטרו מעץ', icon: 'camera', color: '#FF9800' },
   { id: 2, text: 'מגוון אפקטי AI', icon: 'cpu', color: '#4CAF50' },
   { id: 3, text: 'קבלת תמונות במקום', icon: 'printer', color: '#2196F3' },
   { id: 4, text: 'גלריית תמונות', icon: 'image', color: '#FFEB3B' },
@@ -212,7 +212,7 @@ export function HeroSection({ scrollY }: { scrollY?: SharedValue<number> }) {
 
         {/* Left side - 3D Model */}
         <Animated.View style={[StyleSheet.flatten(modelContainerStyle), modelStyle]}>
-          <Booth3DInline scrollY={scrollY} />
+          <Booth3DInline scrollY={scrollY} screenSrc="/invid.mp4" />
         </Animated.View>
       </View>
 

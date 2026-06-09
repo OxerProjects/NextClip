@@ -36,7 +36,133 @@ const STAGE2_RADIUS = 6.0;     // מרחק פיזי של המצלמה מהמוד
 
 import { runOnJS, SharedValue, useAnimatedReaction } from 'react-native-reanimated';
 
-export function Booth3DInline({ scrollY }: { scrollY?: SharedValue<number> }) {
+// Meshes that should display the screen texture (flat screen faces only)
+const SCREEN_MESH_NAMES = new Set(['חטשמ', 'חטשמ003']);
+
+// After applying a texture to Material.002 (shared), clone the material for every
+// non-screen mesh that uses it, reset their clone to plain black so only the
+// actual screen faces show the video/image.
+function isolateTextureToScreen(mv: any): void {
+  const sceneSym = Object.getOwnPropertySymbols(mv as any).find(
+    (s: symbol) => s.toString() === 'Symbol(scene)'
+  ) as symbol | undefined;
+  if (!sceneSym) return;
+
+  const scene = (mv as any)[sceneSym];
+  scene.traverse((obj: any) => {
+    if (obj.isMesh && obj.material?.name === 'Material.002' && !SCREEN_MESH_NAMES.has(obj.name)) {
+      const clone = obj.material.clone();
+      clone.map = null;
+      clone.color.set(0, 0, 0);
+      clone.needsUpdate = true;
+      obj.material = clone;
+    }
+  });
+}
+
+// Applies a static image or looping video to the screen face of the 3D booth model.
+// Content is drawn to the canvas BEFORE touching the material → no white flash.
+// If the file fails to load, nothing changes (screen stays black).
+async function applyScreenTexture(mv: any, src: string): Promise<void> {
+  await new Promise<void>((resolve) => {
+    if ((mv as any).loaded) { resolve(); return; }
+    mv.addEventListener('load', resolve, { once: true });
+    setTimeout(resolve, 15000);
+  });
+
+  if (typeof mv.createCanvasTexture !== 'function') return;
+  const mat = mv.model?.materials?.find((m: any) => m.name === 'Material.002');
+  if (!mat) return;
+
+  const isVideo = /\.(mp4|webm|mov|ogg)$/i.test(src);
+
+  if (isVideo) {
+    // ── Video path ──────────────────────────────────────────────────────────
+    const video = document.createElement('video');
+    video.src = src;
+    video.muted = true;
+    video.loop = true;
+    video.playsInline = true;
+    video.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;top:-10px;left:-10px;';
+    document.body.appendChild(video);
+
+    const ok = await new Promise<boolean>((resolve) => {
+      video.addEventListener('loadeddata', () => resolve(true),  { once: true });
+      video.addEventListener('error',      () => resolve(false), { once: true });
+      video.load();
+    });
+
+    if (!ok) { document.body.removeChild(video); return; }
+
+    try {
+      const texture = await mv.createCanvasTexture(document.createElement('canvas'));
+      const canvas  = texture.source?.element as HTMLCanvasElement | undefined;
+      if (!canvas) { document.body.removeChild(video); return; }
+
+      // Draw first frame BEFORE changing material — eliminates white flash
+      canvas.width  = 512;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d')!;
+
+      // Helper: draw video rotated 90° clockwise (portrait orientation)
+      const drawFrame = () => {
+        ctx.save();
+        ctx.translate(512, 0);
+        ctx.rotate(Math.PI / 2);
+        ctx.drawImage(video, 0, 0, 512, 512);
+        ctx.restore();
+      };
+
+      drawFrame();
+      texture.source.update();
+
+      // Apply material changes now that canvas already has content
+      mat.pbrMetallicRoughness.setBaseColorFactor([1, 1, 1, 1]);
+      await mat.pbrMetallicRoughness.baseColorTexture.setTexture(texture);
+      isolateTextureToScreen(mv);
+
+      // Start playback + RAF loop to push new frames
+      video.play().catch(() => {});
+      const tick = () => {
+        if (video.readyState >= 2 && !video.paused) {
+          drawFrame();
+          texture.source.update();
+        }
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+
+    } catch { document.body.removeChild(video); }
+
+  } else {
+    // ── Static image path ───────────────────────────────────────────────────
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = src;
+    const ok = await new Promise<boolean>((resolve) => {
+      img.onload  = () => resolve(true);
+      img.onerror = () => resolve(false);
+    });
+    if (!ok) return;
+
+    try {
+      const texture = await mv.createCanvasTexture(document.createElement('canvas'));
+      const canvas  = texture.source?.element as HTMLCanvasElement | undefined;
+      if (!canvas) return;
+
+      canvas.width  = img.naturalWidth  || 512;
+      canvas.height = img.naturalHeight || 512;
+      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+      texture.source.update();
+
+      mat.pbrMetallicRoughness.setBaseColorFactor([1, 1, 1, 1]);
+      await mat.pbrMetallicRoughness.baseColorTexture.setTexture(texture);
+      isolateTextureToScreen(mv);
+    } catch {}
+  }
+}
+
+export function Booth3DInline({ scrollY, screenSrc }: { scrollY?: SharedValue<number>, screenSrc?: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const modelRef = useRef<any>(null);
 
@@ -77,9 +203,15 @@ export function Booth3DInline({ scrollY }: { scrollY?: SharedValue<number> }) {
         ></model-viewer>
       `;
       modelRef.current = el.querySelector('model-viewer');
+
+      if (screenSrc && modelRef.current) {
+        applyScreenTexture(modelRef.current, screenSrc);
+      }
     }, 300);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+    };
   }, []);
 
   // Hover parallax: rotate model slightly left/right

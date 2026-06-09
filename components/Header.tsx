@@ -170,9 +170,9 @@ export function Header() {
           {...(Platform.OS === 'web' ? { className: 'services-menu' } : {})}
         >
           {[
-            { href: '/service/2', label: 'עמדת צילום AI', icon: '📸', desc: 'האטרקציה שלא ישכחו' },
-            { href: '/service/1', label: 'מגנטים', icon: '🧲', desc: 'מזכרת שנשארת לנצח' },
-            { href: '/service/3', label: 'סטילס', icon: '🎞️', desc: 'צילום מקצועי' },
+            { href: '/service/2', label: 'עמדת צילום AI', icon: '📸', desc: 'אטרקציה בלתי נשכחת' },
+            { href: '/service/1', label: 'מגנטים', icon: '🧲', desc: 'מזכרת איכותית מהאירוע שלכם' },
+            { href: '/service/3', label: 'סטילס', icon: '🎞️', desc: 'תופסים את הרגעים היפים' },
           ].map((item) => (
             <Link key={item.href} href={item.href as any} asChild>
               <Pressable

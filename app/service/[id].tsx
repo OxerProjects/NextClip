@@ -1,6 +1,6 @@
 import { Colors } from '@/constants/theme';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Image,
@@ -43,23 +43,23 @@ const SERVICES_DATA: Record<string, {
     id: 'magnets', title: 'מגנטים', subtitle: 'מזכרת מעוצבת שנשארת לנצח',
     descriptionImage: '/magnets.png',
     description: 'כל מגנט מעוצב באופן אישי לבחירתכם ולפי סגנון האירוע. על החומרים שלנו אנחנו לא מתפשרים – תוצאה של מזכרת מעוצבת, יוקרתית ועמידה בדיוק כמו הרגעים שהיא מתעדת.',
-    features: ['עיצוב אישי לפי סגנון האירוע', 'חומרים איכותיים ועמידים', 'הדפסה באיכות פרימיום', 'מסירה מיידית באירוע', 'כמות ללא הגבלה', 'אפשרות ללוגו ושמות'],
-    galleryImages: ['/magnets.png', '/magnets.png', '/magnets.png', '/magnets.png'],
+    features: ['עיצוב אישי לפי סגנון האירוע', 'חומרים איכותיים ועמידים', 'הדפסה באיכות פרימיום', 'מסירה מיידית באירוע', 'כמות ללא הגבלה', 'אפשרות ללוגו ושמות', 'צילום מקצועי'],
+    galleryImages: ['/magnets/m1.jpeg', '/magnets/m2.jpeg', '/magnets/m3.jpeg', '/magnets/m4.jpeg', '/magnets/m5.jpeg'],
     galleryType: 'clothesline', bookingSlug: 'magnets',
   },
   'ai-booth': {
-    id: 'ai-booth', title: 'עמדת צילום AI', subtitle: 'האטרקציה שהאורחים לא ישכחו',
+    id: 'ai-booth', title: 'עמדת צילום AI', subtitle: 'האטרקציה החדשנית שהאורחים שלכם לא ישכחו',
     descriptionImage: '/emda1.png', badgeText: 'הבחירה הפופולרית',
-    description: 'לא עוד עמדת צילום משעממת – העמדה שלנו היא אטרקציה שלא רואים באף אירוע אחר! אפקטי AI מתקדמים, שיתוף מיידי לנייד וצוות מקצועי לאורך כל האירוע.',
-    features: ['אפקטי AI מתקדמים ומיוחדים', 'שיתוף מיידי לנייד', 'גלריה דיגיטלית לכל האורחים', 'שטיח אדום + עמודי חבלול', 'חצובות תאורה מקצועיות', 'מראה מעוצבת עם שמות המתחתנים'],
+    description: 'לא עוד עמדת צילום משעממת – העמדה שלנו היא אטרקציה שלא רואים באף אירוע אחר.         עמדת צילום AI מהודרת הכוללת אביזרים, תאורה מקצועית והדפסת מגנטים איכותיים שכל אורח ישמח לקבל.',
+    features: ['מגוון עצום של אפקטי AI מיוחדים', 'שיתוף מיידי לנייד', 'גלריה דיגיטלית לכל האורחים', 'הדפסה על מגנט', 'חצובות תאורה מקצועיות', 'מראה מעוצבת עם שמות המתחתנים', 'יצירת אפקטים בהתאמה אישית', 'שטיח אדום + עמודי חבלול', 'בליווי אנשי צוות'],
     galleryImages: ['/emda2.png', '/emda1.png', '/main.png', '/emda1.png'],
     galleryType: 'wood', bookingSlug: 'booth',
   },
   stills: {
     id: 'stills', title: 'צילום סטילס', subtitle: 'כל רגע, בצורה הכי מחמיאה שיש',
     descriptionImage: '/service1.png',
-    description: 'צלמים מקצועיים שיתפסו את כל הרגעים החשובים באירוע שלכם – החיוכים, ההתרגשות, הקסם – הכל, בצורה הכי מחמיאה ויפה שיש.',
-    features: ['צלמים מקצועיים מנוסים', 'ציוד צילום מתקדם', 'עריכה מקצועית לכל התמונות', 'מסירת גלריה דיגיטלית', 'זכויות שימוש מלאות', 'תיאום מראש עם הצוות'],
+    description: 'צלמים מנוסים המקפידים על תיעוד מקצועי של הרגעים החשובים ביותר, עם דגש על איכות, רגש ותשומת לב לכל פרט.',
+    features: ['ציוד צילום מתקדם', 'עריכה מקצועית לכל התמונות', 'מסירת גלריה דיגיטלית', 'זכויות שימוש מלאות', 'תיאום מראש עם הצוות', 'קבלת התמונות בדיסק-און-קי '],
     galleryImages: ['/service1.png', '/service1.png', '/service1.png', '/service1.png'],
     galleryType: 'film', bookingSlug: 'stills',
   },
@@ -124,160 +124,160 @@ function WoodenFrame({ uri, size, tilt }: { uri: string; size: number; tilt: str
 
 // ─── Clothesline (magnets) ────────────────────────────────────────────────────
 
-// Classic natural-wood spring clothespin, front view, clamping the twine.
+// Positions of each clothespin as % from the left edge of the clothesline image.
+// Adjust these if your image has different pin spacing.
+const PIN_POSITIONS_PCT = [17, 31, 50, 69, 83];
+// How far down (% of image height) the clothespin grip sits (top of the photo).
+const PIN_Y_PCT = 58;
+
+// Realistic wooden spring clothespin matching the reference photo style.
 function Clothespin({ tilt = 0 }: { tilt?: number }) {
-  const W = 13, H = 30;
+  const W = 18, H = 44;
   return (
     <div style={{
       width: W, height: H, position: 'relative',
       transform: `rotate(${tilt}deg)`,
-      filter: 'drop-shadow(1px 3px 3px rgba(0,0,0,0.45))',
+      filter: 'drop-shadow(1px 4px 5px rgba(0,0,0,0.7))',
       zIndex: 3,
     } as any}>
-      {/* left wooden half */}
+      {/* left arm */}
       <div style={{
-        position: 'absolute', left: 0, top: 0, width: W / 2 - 0.4, height: H,
-        borderRadius: `${W / 2}px ${W * 0.18}px ${W * 0.28}px ${W / 2}px`,
-        background: 'linear-gradient(95deg, #B68E54 0%, #E3C690 28%, #D2B176 60%, #B68E54 100%)',
+        position: 'absolute', left: 0, top: 0,
+        width: W / 2 - 0.5, height: H,
+        borderRadius: `${W * 0.45}px ${W * 0.12}px ${W * 0.22}px ${W * 0.45}px`,
+        background: 'linear-gradient(100deg, #9A6E38 0%, #D4A55A 22%, #C49040 50%, #A87830 75%, #8C6228 100%)',
       } as any} />
-      {/* right wooden half */}
+      {/* right arm */}
       <div style={{
-        position: 'absolute', right: 0, top: 0, width: W / 2 - 0.4, height: H,
-        borderRadius: `${W * 0.18}px ${W / 2}px ${W / 2}px ${W * 0.28}px`,
-        background: 'linear-gradient(265deg, #A9824A 0%, #DBBC84 32%, #CBAA70 62%, #A9824A 100%)',
+        position: 'absolute', right: 0, top: 0,
+        width: W / 2 - 0.5, height: H,
+        borderRadius: `${W * 0.12}px ${W * 0.45}px ${W * 0.45}px ${W * 0.22}px`,
+        background: 'linear-gradient(260deg, #9A6E38 0%, #C49040 22%, #D4A55A 50%, #B88840 75%, #8C6228 100%)',
       } as any} />
+      {/* wood grain lines */}
+      {[0.25, 0.5, 0.72].map((pos, i) => (
+        <div key={i} style={{
+          position: 'absolute', left: 2, right: 2,
+          top: `${pos * 100}%`, height: 0.7,
+          background: 'rgba(80,45,10,0.28)',
+        } as any} />
+      ))}
       {/* center seam */}
       <div style={{
-        position: 'absolute', left: '50%', top: 1, width: 0.8, height: H - 2, marginLeft: -0.4,
-        background: 'rgba(90,62,28,0.5)',
+        position: 'absolute', left: '50%', top: 2, width: 1, height: H - 4, marginLeft: -0.5,
+        background: 'rgba(60,35,8,0.55)',
       } as any} />
-      {/* metal spring band */}
+      {/* metal spring ring */}
       <div style={{
-        position: 'absolute', left: -0.5, right: -0.5, top: H * 0.42, height: 3.2,
-        borderRadius: 2,
-        background: 'linear-gradient(to bottom, #E8E8EC, #9A9AA0 55%, #6E6E74)',
-        boxShadow: '0 1px 1px rgba(0,0,0,0.35)',
+        position: 'absolute', left: -1, right: -1, top: H * 0.44, height: 5,
+        borderRadius: 3,
+        background: 'linear-gradient(180deg, #D8D8DC 0%, #A0A0A8 45%, #787880 100%)',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.3)',
+      } as any} />
+      {/* highlight */}
+      <div style={{
+        position: 'absolute', left: 2, top: 3, width: W * 0.25, height: H * 0.35,
+        borderRadius: '50%',
+        background: 'rgba(255,235,180,0.18)',
       } as any} />
     </div>
   );
 }
 
 function ClotheslineGallery({ images, screenWidth, isMobile }: { images: string[]; screenWidth: number; isMobile: boolean }) {
-  const photoW   = isMobile ? 104 : 142;
-  const photoH   = Math.round(photoW * 1.26);
-  // subtle, orderly tilts
-  const tilts    = [-2.5, 1.5, -2, 2.5, -1.5, 2, -2.5, 1.5];
-  const pinTilts = [0, -1, 1, -0.5, 1, -1, 0.5, -1];
+  // Pins sit ~14% of the width apart at their tightest; size photos to that gap
+  // so on narrow screens they hang with only a slight overlap instead of piling up.
+  const photoW = isMobile ? Math.max(54, Math.round(screenWidth * 0.165)) : 138;
+  const photoH = Math.round(photoW * 1.35);
+  const tilts  = [-3.5, 2, -1.5, 3, -2.5];
 
-  // gentle parabola
-  const sagPx    = isMobile ? 34 : 46;
-  const ropeTopY = 30;
-
-  const parabolaY = (x: number, W: number) => ropeTopY + sagPx * 4 * (x / W) * (1 - x / W);
-
-  const row1 = images;
-  const row2 = [...images].reverse();
-
-  const RopeRow = ({ rowImages, rowIndex }: { rowImages: string[]; rowIndex: number }) => {
-    const n   = rowImages.length;
-    const W   = screenWidth;
-
-    // cluster toward centre, photos slightly overlapping like the reference
-    const step      = isMobile ? photoW * 0.74 : photoW * 0.86;
-    const totalSpan = step * (n - 1);
-    const centres   = rowImages.map((_, i) => W / 2 - totalSpan / 2 + i * step);
-
-    const containerH = ropeTopY + sagPx + photoH + 36;
-
-    const ropePath = `M 0,${ropeTopY} Q ${W / 2},${ropeTopY + sagPx} ${W},${ropeTopY}`;
-
-    if (Platform.OS === 'web') {
-      return (
-        <div style={{ position: 'relative', width: '100%', height: containerH, marginBottom: rowIndex === 0 ? 14 : 0 } as any}>
-
-          {/* SVG twine — thin, pale jute */}
-          <svg width="100%" height={containerH} style={{ position: 'absolute', top: 0, left: 0 } as any}>
-            <path d={ropePath} fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth="3.5" strokeLinecap="round" transform="translate(0,1.5)" />
-            <path d={ropePath} fill="none" stroke="#C9B492" strokeWidth="2.4" strokeLinecap="round" />
-            <path d={ropePath} fill="none" stroke="#9C835E" strokeWidth="2.4" strokeLinecap="round" strokeDasharray="2 4" opacity="0.55" />
-            <path d={ropePath} fill="none" stroke="rgba(255,248,225,0.5)" strokeWidth="0.8" strokeLinecap="round" transform="translate(0,-0.6)" />
-          </svg>
-
-          {/* Each photo hangs from the rope, gripped by a clothespin */}
-          {rowImages.map((uri, i) => {
-            const cx    = centres[i];
-            const ropey = parabolaY(cx, W);
-            const tilt  = tilts[(i + rowIndex * 3) % tilts.length];
-
-            return (
-              <div key={i} style={{
-                position: 'absolute',
-                left: cx - photoW / 2,
-                top: ropey,            // pivot sits exactly on the twine
-                width: photoW,
-                transformOrigin: 'top center',
-                transform: `rotate(${tilt}deg)`,
-                zIndex: i + 1,
-              } as any}>
-                {/* Photo — top edge tucked just under the twine */}
-                <div style={{
-                  width: photoW, height: photoH,
-                  marginTop: 6,
-                  backgroundColor: '#fff',
-                  padding: 5,
-                  position: 'relative',
-                  boxShadow: '3px 11px 26px rgba(0,0,0,0.55), -2px 3px 9px rgba(0,0,0,0.28)',
-                } as any}>
-                  <div style={{
-                    position: 'absolute', inset: 4,
-                    border: '2px dashed #1a1a1a',
-                    pointerEvents: 'none',
-                  } as any} />
-                  <img src={uri} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' } as any} />
-                </div>
-
-                {/* Clothespin straddles the twine and clamps the photo's top edge */}
-                <div style={{
-                  position: 'absolute', top: -16, left: '50%',
-                  transform: `translateX(-50%) rotate(${pinTilts[i % pinTilts.length]}deg)`,
-                  zIndex: 5,
-                } as any}>
-                  <Clothespin />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      );
+  // Dynamically measure the clothesline image height after it loads
+  const [imgH, setImgH] = useState(Math.round(screenWidth / 2.5));
+  const onImgLoad = useCallback((e: any) => {
+    const el: HTMLImageElement = e.target ?? e.nativeEvent?.target;
+    if (el?.naturalWidth) {
+      setImgH(Math.round(screenWidth * el.naturalHeight / el.naturalWidth));
     }
+  }, [screenWidth]);
 
-    // Native fallback — simple row
+  if (Platform.OS !== 'web') {
+    // ── Native fallback ──────────────────────────────────────────────────
+    const step  = photoW * 0.9;
+    const total = step * (images.length - 1);
+    const lefts = images.map((_, i) => screenWidth / 2 - total / 2 + i * step);
     return (
-      <View style={{ width: '100%', position: 'relative', height: containerH, marginBottom: rowIndex === 0 ? 14 : 0 }}>
-        <View style={{ position: 'absolute', top: ropeTopY + sagPx / 2, left: 0, right: 0, height: 3, backgroundColor: '#C9B492', borderRadius: 2 }} />
-        {rowImages.map((uri, i) => {
-          const cx   = centres[i];
-          const tilt = tilts[(i + rowIndex * 3) % tilts.length];
-          return (
+      <View style={{ width: '100%', backgroundColor: '#000', paddingVertical: 32 }}>
+        <View style={{ position: 'relative', height: photoH + 60 }}>
+          <View style={{ position: 'absolute', top: 24, left: 0, right: 0, height: 3, backgroundColor: '#C9B492' }} />
+          {images.map((uri, i) => (
             <View key={i} style={{
-              position: 'absolute', left: cx - photoW / 2, top: ropeTopY + sagPx / 2,
-              width: photoW, alignItems: 'center', transform: [{ rotate: `${tilt}deg` }],
+              position: 'absolute', left: lefts[i] - photoW / 2, top: 36,
+              width: photoW, transform: [{ rotate: `${tilts[i % tilts.length]}deg` }],
             }}>
-              <View style={{ width: 12, height: 26, backgroundColor: '#D2B176', borderRadius: 5, zIndex: 2 }} />
-              <View style={{ width: photoW, height: photoH, backgroundColor: '#fff', padding: 5, marginTop: -10 }}>
+              <View style={{ width: 12, height: 28, backgroundColor: '#D2B176', borderRadius: 4, alignSelf: 'center', zIndex: 2 }} />
+              <View style={{ width: photoW, height: photoH, backgroundColor: '#fff', padding: 5, marginTop: -8 }}>
                 <Image source={{ uri }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
               </View>
             </View>
-          );
-        })}
+          ))}
+        </View>
       </View>
     );
-  };
+  }
+
+  // ── Web ──────────────────────────────────────────────────────────────────────
+  // clothesline.png has a pure-black bg → mix-blend-mode:screen makes black disappear.
+  // Photos sit in a layer behind the image, anchored at each clothespin position.
+  const pins    = PIN_POSITIONS_PCT.slice(0, images.length);
+  const pinYpx  = Math.round(imgH * (PIN_Y_PCT / 100));
+  const totalH  = pinYpx + photoH + 28;   // container just tall enough for photos
 
   return (
-    <View style={{ width: '100%', backgroundColor: Colors.dark.background, paddingTop: 20, paddingBottom: 52 }}>
-      <RopeRow rowImages={row1} rowIndex={0} />
-      <RopeRow rowImages={row2} rowIndex={1} />
+    <View style={{ width: '100%', backgroundColor: '#000' }}>
+      <div style={{ position: 'relative', width: '100%', height: totalH } as any}>
+
+        {/* ── Photos behind the rope ── */}
+        {pins.map((leftPct, i) => (
+          <div key={i} style={{
+            position: 'absolute',
+            left: `${leftPct}%`,
+            top: pinYpx,
+            transform: `translateX(-50%) rotate(${tilts[i % tilts.length]}deg)`,
+            transformOrigin: 'top center',
+            zIndex: 1,
+          } as any}>
+            <div style={{
+              width: photoW,
+              backgroundColor: '#fff',
+              padding: isMobile ? 5 : 6,
+              paddingBottom: isMobile ? 20 : 26,
+              boxShadow: '0 10px 30px rgba(0,0,0,0.85), 0 3px 10px rgba(0,0,0,0.5)',
+            } as any}>
+              <img
+                src={images[i]}
+                style={{ width: '100%', height: photoH, objectFit: 'cover', display: 'block' } as any}
+              />
+            </div>
+          </div>
+        ))}
+
+        {/* ── Clothesline image on top — mix-blend-mode removes black bg ── */}
+        <img
+          src="/clothesline.png"
+          onLoad={onImgLoad}
+          style={{
+            position: 'absolute',
+            top: 0, left: 0,
+            width: '100%',
+            height: imgH,
+            objectFit: 'fill',        // preserve exact proportions
+            mixBlendMode: 'screen',   // black = transparent
+            pointerEvents: 'none',
+            zIndex: 2,
+            display: 'block',
+          } as any}
+        />
+      </div>
     </View>
   );
 }
@@ -364,7 +364,10 @@ function Gallery({ images, type, isMobile, screenWidth }: {
   // wood
   const totalGap = 16 * (images.length + 1);
   const frameSize = Math.floor((screenWidth - totalGap) / images.length);
-  const clampedSize = Math.max(isMobile ? 110 : 150, Math.min(frameSize, 260));
+  // Hard cap so the row of frames always fits the viewport: each frame carries
+  // 10px margin on both sides (20 total) and the row has 8px padding (16 total).
+  const fitSize = Math.floor((screenWidth - 16) / images.length) - 20;
+  const clampedSize = Math.min(260, fitSize, Math.max(isMobile ? 64 : 150, frameSize));
   const tilts = ['-1.5deg', '1deg', '-0.8deg', '1.5deg'];
 
   return (
@@ -428,8 +431,8 @@ const boothIconStyles = StyleSheet.create({
 
 // ─── Guest meter — slim bar ───────────────────────────────────────────────────
 
-function GuestMeter({ guests, min, max, onChange, serviceId }: {
-  guests: number; min: number; max: number; onChange: (n: number) => void; serviceId: string;
+function GuestMeter({ guests, min, max, onChange, serviceId, isMobile }: {
+  guests: number; min: number; max: number; onChange: (n: number) => void; serviceId: string; isMobile?: boolean;
 }) {
   const anim = useRef(new Animated.Value(guests)).current;
   const [display, setDisplay] = useState(guests);
@@ -446,7 +449,7 @@ function GuestMeter({ guests, min, max, onChange, serviceId }: {
     : [50, 100, 200, 300, 400, 500, 600, 700, 800, 1000];
 
   return (
-    <View style={meterStyles.box}>
+    <View style={StyleSheet.flatten([meterStyles.box, isMobile ? meterStyles.boxMobile : null])}>
       <View style={meterStyles.topRow}>
         <Text style={meterStyles.label}>כמות האורחים</Text>
         <Text style={meterStyles.count}>{display.toLocaleString()}</Text>
@@ -480,6 +483,9 @@ const meterStyles = StyleSheet.create({
   box: {
     gap: 6, minWidth: 180, maxWidth: 240,
   },
+  boxMobile: {
+    minWidth: 0, maxWidth: '100%', width: '100%',
+  },
   topRow: { flexDirection: 'row-reverse', alignItems: 'baseline', justifyContent: 'space-between', width: '100%' },
   label: { color: '#475569', fontSize: 11, fontFamily: 'Assistant_400Regular' },
   count: { fontSize: 20, fontWeight: '900', color: '#fff', fontFamily: 'Assistant_700Bold' },
@@ -493,8 +499,8 @@ const meterStyles = StyleSheet.create({
 
 // ─── Price bar ────────────────────────────────────────────────────────────────
 
-function PriceBar({ serviceId, router, bookingSlug, guests, onGuestsChange }: {
-  serviceId: string; router: any; bookingSlug: string; guests: number; onGuestsChange: (n: number) => void;
+function PriceBar({ serviceId, router, bookingSlug, guests, onGuestsChange, isMobile }: {
+  serviceId: string; router: any; bookingSlug: string; guests: number; onGuestsChange: (n: number) => void; isMobile?: boolean;
 }) {
   const getPrice = () => {
     if (serviceId === 'ai-booth') return calcBoothPrice(guests);
@@ -514,9 +520,9 @@ function PriceBar({ serviceId, router, bookingSlug, guests, onGuestsChange }: {
   }, [price]);
 
   return (
-    <View style={barStyles.bar}>
+    <View style={StyleSheet.flatten([barStyles.bar, isMobile ? barStyles.barMobile : null])}>
       {/* Right: price + booth icon */}
-      <View style={barStyles.priceCol}>
+      <View style={StyleSheet.flatten([barStyles.priceCol, isMobile ? barStyles.priceColMobile : null])}>
         <View style={barStyles.priceRow}>
           <Text style={barStyles.priceNum}>{dispPrice.toLocaleString()}</Text>
           <Text style={barStyles.priceSym}>₪</Text>
@@ -530,19 +536,19 @@ function PriceBar({ serviceId, router, bookingSlug, guests, onGuestsChange }: {
         <Text style={barStyles.priceSub}>ל-3 שעות</Text>
       </View>
 
-      {/* Meter — right next to price */}
+      {/* Meter — right next to price (stacks below on mobile) */}
       {!isStills && (
         <>
-          <View style={barStyles.sep} />
-          <GuestMeter guests={guests} min={50} max={1000} onChange={onGuestsChange} serviceId={serviceId} />
+          {!isMobile && <View style={barStyles.sep} />}
+          <GuestMeter guests={guests} min={50} max={1000} onChange={onGuestsChange} serviceId={serviceId} isMobile={isMobile} />
         </>
       )}
 
-      {/* Spacer pushes CTA to far left */}
-      <View style={{ flex: 1 }} />
+      {/* Spacer pushes CTA to far left (desktop only) */}
+      {!isMobile && <View style={{ flex: 1 }} />}
 
-      {/* CTA — far left */}
-      <Pressable style={barStyles.cta}
+      {/* CTA — far left on desktop, full-width on mobile */}
+      <Pressable style={StyleSheet.flatten([barStyles.cta, isMobile ? barStyles.ctaMobile : null])}
         onPress={() => router.push(`/booking?service=${bookingSlug}`)}
         {...(Platform.OS === 'web' ? { className: 'price-cta' } : {})}>
         <Text style={barStyles.ctaText}>להזמנה</Text>
@@ -562,7 +568,15 @@ const barStyles = StyleSheet.create({
     marginHorizontal: 24, marginTop: 32, marginBottom: 40,
     ...Platform.select({ web: { boxShadow: '0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)' } as any }),
   },
+  barMobile: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: 18,
+    paddingHorizontal: 20, paddingVertical: 18,
+    marginHorizontal: 16,
+  },
   priceCol: { alignItems: 'flex-end' },
+  priceColMobile: { alignItems: 'flex-end', width: '100%' },
   priceRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10 },
   priceNum: { fontSize: 40, fontWeight: '900', color: '#fff', fontFamily: 'Assistant_700Bold', lineHeight: 44 },
   priceSym: { fontSize: 18, color: '#475569', fontFamily: 'Assistant_700Bold' },
@@ -575,6 +589,7 @@ const barStyles = StyleSheet.create({
     borderRadius: 12, alignItems: 'center',
     ...Platform.select({ web: { boxShadow: '0 4px 16px rgba(0,86,219,0.45)', transition: 'all 0.18s ease' } as any }),
   },
+  ctaMobile: { width: '100%', paddingVertical: 16 },
   ctaText: { color: '#fff', fontSize: 17, fontWeight: 'bold', fontFamily: 'Assistant_700Bold' },
 });
 
@@ -672,7 +687,7 @@ export default function ServiceDetailPage() {
           {/* ── Price bar — in scroll, at bottom ─────────────── */}
           <PriceBar
             serviceId={service.id} router={router} bookingSlug={service.bookingSlug}
-            guests={guests} onGuestsChange={setGuests}
+            guests={guests} onGuestsChange={setGuests} isMobile={isMobile}
           />
         </ScrollView>
       </Animated.View>
