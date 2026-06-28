@@ -252,7 +252,7 @@ export default function BookingScreen() {
                         isSelected && styles.daySelected
                       ]}
                       disabled={blocked}
-                      onPress={() => setSelectedDate(dStr)}
+                      onPress={() => { setSelectedDate(dStr); setCalendarStage(false); }}
                     >
                       <Text style={[
                         styles.dayText,
