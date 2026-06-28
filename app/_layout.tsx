@@ -30,6 +30,15 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
     html { scroll-behavior: smooth; }
   `;
   document.head.appendChild(style);
+
+  // Favicon
+  if (!document.querySelector('link[rel="icon"]')) {
+    const link = document.createElement('link');
+    link.rel = 'icon';
+    link.type = 'image/svg+xml';
+    link.href = '/icon.svg';
+    document.head.appendChild(link);
+  }
 }
 
 // Force RTL

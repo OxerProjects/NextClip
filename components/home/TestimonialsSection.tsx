@@ -7,7 +7,7 @@ import { Animated, Image, Platform, StyleSheet, Text, useWindowDimensions, View 
 // ניתן להוסיף 1-4 תמונות לכל ביקורת.
 const TESTIMONIALS = [
   { id: 1, name: 'ורד - מנהלת מחוז דרום ב"כללית"', text: 'היה מהמם! שמעתי הרבה מחמאות על העמדה וכל התמונות שצילמת יצאו מדהימות.', rating: 5, avatar: 'clalit.jpg', images: [] },
-  { id: 2, name: 'עומרי - חברת "INTEL"', text: '', rating: 5, avatar: 'intel.png', images: [] },
+  { id: 2, name: 'עומרי - חברת "INTEL"', text: 'היה מדהים! כל הכבוד על העבודה המושלמת, כולם נהנו מאוד.', rating: 5, avatar: 'intel.png', images: [] },
   { id: 3, name: 'מעיין - מנהלת HR בחברת "PLAYTIKA"', text: 'היי היה מעולה, לא יכולה לחכות לשלוח לכולם את התמונות.', rating: 5, avatar: 'playtika.png', images: [] },
   { id: 4, name: 'רונית', text: 'בוקר טוב עידו, תודה רבה על אתמול אתה פשוט מקסים ואין דברים כמוך. אין ספק שהעמדה עשתה את הבת מצווה!!! נהיננו מאוד הצטלמנו מלאאאא כמו שאתה יודע, השארנו אותך בלי מגנטים. הייתם מדהימים. המון המון תודה‼️', rating: 5, avatar: 'anon.jpg', images: [] },
   { id: 5, name: 'ליאורה - עמותת "להושיט יד"', text: 'תודה רבה רבה רבה על אתמול!! עשיתם ליהונתן ובכללי לכולם ערב מושלם! לפי יהונתן ״הערב הכי טוב שהיה לי בחיים!״ אין עליכם!!!!', rating: 5, avatar: 'yad.png', images: ['lev.jpeg'] },

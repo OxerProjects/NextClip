@@ -400,14 +400,15 @@ const dropdownStyles = StyleSheet.create({
     fontSize: 22,
   },
   itemText: {
-    alignItems: 'flex-end',
+    alignItems: 'stretch',
     flex: 1,
   },
   itemLabel: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-    textAlign: 'right',
+    textAlign: 'left',
+    width: '100%',
   },
   itemLabelActive: {
     color: '#3b82f6',
@@ -415,8 +416,9 @@ const dropdownStyles = StyleSheet.create({
   itemDesc: {
     color: 'rgba(255,255,255,0.45)',
     fontSize: 12,
-    textAlign: 'right',
+    textAlign: 'left',
     marginTop: 2,
+    width: '100%',
   },
 });
 

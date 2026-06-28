@@ -1,8 +1,8 @@
 import { Colors } from '@/constants/theme';
-import { Feather } from '@expo/vector-icons';
+import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import React, { useEffect } from 'react';
-import { Image, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Image, Linking, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { Extrapolate, interpolate, SharedValue, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { Booth3DInline } from './Booth3D';
 
@@ -195,11 +195,31 @@ export function HeroSection({ scrollY }: { scrollY?: SharedValue<number> }) {
             {isMobile ? 'עמדת הצילום AI לאירוע הבא שלכם' : 'עמדת\nהצילום AI\nלאירוע\nהבא שלכם'}
           </Text>
 
-          <Link href="/booking" asChild>
-            <Pressable style={StyleSheet.flatten(ctaStyle)}>
-              <Text style={StyleSheet.flatten(ctaTextStyle)}>להזמנות</Text>
+          <View style={StyleSheet.flatten(isMobile ? [styles.ctaRow, styles.mobileCtaRow] : styles.ctaRow)}>
+            <Link href="/booking" asChild>
+              <Pressable style={StyleSheet.flatten(ctaStyle)}>
+                <Text style={StyleSheet.flatten(ctaTextStyle)}>להזמנות</Text>
+              </Pressable>
+            </Link>
+
+            {/* WhatsApp */}
+            <Pressable
+              onPress={() => Linking.openURL('https://wa.me/972508474111')}
+              style={StyleSheet.flatten(isMobile ? [styles.contactSquare, styles.mobileContactSquare, styles.whatsappSquare] : [styles.contactSquare, styles.whatsappSquare])}
+              accessibilityLabel="וואטסאפ"
+            >
+              <FontAwesome5 name="whatsapp" size={isMobile ? 24 : 30} color="#fff" />
             </Pressable>
-          </Link>
+
+            {/* Phone */}
+            <Pressable
+              onPress={() => Linking.openURL('tel:0508474111')}
+              style={StyleSheet.flatten(isMobile ? [styles.contactSquare, styles.mobileContactSquare, styles.phoneSquare] : [styles.contactSquare, styles.phoneSquare])}
+              accessibilityLabel="התקשרו אלינו"
+            >
+              <Feather name="phone" size={isMobile ? 22 : 26} color="#fff" />
+            </Pressable>
+          </View>
         </Animated.View>
 
         {/* Features List (Appears later, rises exactly in the center on Mobile) */}
@@ -297,8 +317,40 @@ const styles = StyleSheet.create({
     alignItems: 'center' as const,
   },
   mobileCtaButton: {
-    minWidth: '85%' as any,
+    flex: 1,
+    minWidth: 0 as any,
     paddingVertical: 14,
+  },
+  ctaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  mobileCtaRow: {
+    width: '85%' as any,
+    gap: 10,
+    justifyContent: 'center',
+  },
+  contactSquare: {
+    width: 64,
+    height: 64,
+    borderRadius: 8,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    ...Platform.select({
+      web: { boxShadow: '0 4px 16px rgba(0,0,0,0.35)', cursor: 'pointer' } as any,
+    }),
+  },
+  mobileContactSquare: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+  },
+  whatsappSquare: {
+    backgroundColor: '#25D366',
+  },
+  phoneSquare: {
+    backgroundColor: '#0056DB',
   },
   ctaText: {
     color: '#fff',
