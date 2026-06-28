@@ -9,7 +9,6 @@ import { useFonts } from 'expo-font';
 import { Assistant_400Regular, Assistant_600SemiBold, Assistant_700Bold } from '@expo-google-fonts/assistant';
 import { Text, TextInput } from 'react-native';
 
-// Optional: Global default font for React Native Text components (helps on iOS/Android without refactoring all components)
 interface TextWithDefaultProps extends Text {
   defaultProps?: { style?: any };
 }
@@ -22,22 +21,68 @@ interface TextInputWithDefaultProps extends TextInput {
 (TextInput as unknown as TextInputWithDefaultProps).defaultProps = (TextInput as unknown as TextInputWithDefaultProps).defaultProps || {};
 (TextInput as unknown as TextInputWithDefaultProps).defaultProps!.style = { fontFamily: 'Assistant_400Regular' };
 
-
-// Smooth scroll and font on web
+// Web setup: global CSS + favicon + loading overlay
 if (Platform.OS === 'web' && typeof document !== 'undefined') {
-  const style = document.createElement('style');
-  style.textContent = `
-    html { scroll-behavior: smooth; }
-  `;
-  document.head.appendChild(style);
+  // ── Global CSS ──────────────────────────────────────────────────────────────
+  if (!document.getElementById('nc-base-style')) {
+    const s = document.createElement('style');
+    s.id = 'nc-base-style';
+    s.textContent = `
+      html {
+        scroll-behavior: smooth;
+        /* Prevent iOS Safari from auto-scaling fonts on orientation change */
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+      }
+      * { -webkit-font-smoothing: antialiased; }
 
-  // Favicon
+      @keyframes nc-spin {
+        from { transform: rotate(0deg); }
+        to   { transform: rotate(360deg); }
+      }
+      @keyframes nc-pulse {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0.55; }
+      }
+      #nc-loader {
+        position: fixed; inset: 0; z-index: 9999;
+        background: #0F172A;
+        display: flex; align-items: center; justify-content: center;
+        transition: opacity 0.55s ease;
+      }
+      #nc-loader.done { opacity: 0; pointer-events: none; }
+      #nc-loader svg {
+        width: 72px; height: 72px;
+        animation: nc-spin 2.6s linear infinite, nc-pulse 2.6s ease-in-out infinite;
+      }
+    `;
+    document.head.appendChild(s);
+  }
+
+  // ── Favicon ─────────────────────────────────────────────────────────────────
   if (!document.querySelector('link[rel="icon"]')) {
     const link = document.createElement('link');
     link.rel = 'icon';
     link.type = 'image/svg+xml';
     link.href = '/icon.svg';
     document.head.appendChild(link);
+  }
+
+  // ── Loading overlay (appended to body when ready) ───────────────────────────
+  const injectLoader = () => {
+    if (document.getElementById('nc-loader')) return;
+    const div = document.createElement('div');
+    div.id = 'nc-loader';
+    div.innerHTML = `<svg viewBox="0 0 35 35" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M15.708 10.8846L21.6838 0.640269C24.2733 1.32322 26.5715 2.5753 28.5782 4.39651C30.585 6.21772 32.0431 8.38041 32.9525 10.8846H15.708ZM10.97 15.153L5.12217 4.90873C6.65882 3.40054 8.44474 2.20537 10.4799 1.32322C12.5151 0.441074 14.7131 0 17.0739 0C17.4438 0 17.8706 0.021627 18.3544 0.0648808C18.8382 0.108135 19.2792 0.157648 19.6776 0.213423L10.97 15.153ZM0.554919 21.3423C0.384181 20.6593 0.248728 19.9622 0.148561 19.2508C0.0483949 18.5393 -0.00111907 17.8137 1.91842e-05 17.0738C1.91842e-05 15.0534 0.327268 13.1469 0.981765 11.3541C1.63626 9.56135 2.56109 7.92511 3.75626 6.44538L12.3786 21.3423H0.554919ZM12.5066 33.5074C9.91708 32.8245 7.61211 31.5724 5.5917 29.7512C3.5713 27.93 2.10579 25.7673 1.19519 23.2631H18.3971L12.5066 33.5074ZM17.0739 34.1477C16.647 34.1477 16.2128 34.1192 15.7711 34.0623C15.3295 34.0054 14.91 33.9485 14.5128 33.8916L23.1778 18.9946L29.0255 29.239C27.4889 30.7471 25.7035 31.9423 23.6695 32.8245C21.6354 33.7066 19.4369 34.1477 17.0739 34.1477ZM30.3915 27.7023L21.7692 12.8054H33.5928C33.7635 13.4883 33.899 14.1855 33.9992 14.8969C34.0993 15.6083 34.1488 16.334 34.1477 17.0738C34.1477 19.0658 33.7994 20.9724 33.1028 22.7936C32.4062 24.6148 31.5024 26.251 30.3915 27.7023Z" fill="#0056DB"/>
+    </svg>`;
+    document.body.appendChild(div);
+  };
+
+  if (document.body) {
+    injectLoader();
+  } else {
+    document.addEventListener('DOMContentLoaded', injectLoader);
   }
 }
 
@@ -50,7 +95,6 @@ try {
 }
 
 export const unstable_settings = {
-  // Ensure that reloading on `/` keeps a back button present.
   initialRouteName: 'index',
 };
 
@@ -81,8 +125,18 @@ export default function RootLayout() {
     Assistant_700Bold,
   });
 
+  useEffect(() => {
+    if (!fontsLoaded) return;
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    const loader = document.getElementById('nc-loader');
+    if (!loader) return;
+    loader.classList.add('done');
+    const t = setTimeout(() => loader.remove(), 650);
+    return () => clearTimeout(t);
+  }, [fontsLoaded]);
+
   if (!fontsLoaded) {
-    return null; // Or a splash screen
+    return null;
   }
 
   return (

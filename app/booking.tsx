@@ -76,6 +76,13 @@ export default function BookingScreen() {
     loadBlockedDates();
   }, []);
 
+  // When stills is selected, wedding is not allowed
+  useEffect(() => {
+    if (services.stills && eventType === 'חתונה') {
+      setEventType('אחר');
+    }
+  }, [services.stills]);
+
   const loadBlockedDates = async () => {
     setLoading(true);
     const bookings = await getBookings();
@@ -281,14 +288,26 @@ export default function BookingScreen() {
       
       <Text style={styles.label}>טלפון:</Text>
       <TextInput style={styles.input} value={phone} onChangeText={setPhone} textAlign="right" keyboardType="phone-pad" placeholder="טלפון" placeholderTextColor="#666" />
-      
+
+      <Text style={styles.label}>מיקום האירוע:</Text>
+      <TextInput style={styles.input} value={location} onChangeText={setLocation} textAlign="right" placeholder="כתובת האולם / מקום האירוע" placeholderTextColor="#666" />
+
       <Text style={styles.label}>סוג האירוע:</Text>
       <View style={styles.chipRow}>
-        {['חתונה', 'בר/בת מצווה', 'אירוע חברה', 'אחר'].map(t => (
-          <TouchableOpacity key={t} style={[styles.chip, eventType === t && styles.chipActive]} onPress={() => setEventType(t)}>
-            <Text style={[styles.chipText, eventType === t && styles.chipTextActive]}>{t}</Text>
-          </TouchableOpacity>
-        ))}
+        {['חתונה', 'בר/בת מצווה', 'אירוע חברה', 'אחר'].map(t => {
+          const blocked = t === 'חתונה' && services.stills;
+          return (
+            <TouchableOpacity
+              key={t}
+              style={[styles.chip, eventType === t && styles.chipActive, blocked && styles.chipDisabled]}
+              onPress={() => !blocked && setEventType(t)}
+              disabled={blocked}
+            >
+              <Text style={[styles.chipText, eventType === t && styles.chipTextActive, blocked && styles.chipTextDisabled]}>{t}</Text>
+              {blocked && <Text style={styles.chipTextDisabled}> ✕</Text>}
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <Text style={styles.label}>כמות מוזמנים משוערת: {guests}</Text>
@@ -674,7 +693,9 @@ export default function BookingScreen() {
               }}
             >
               <option value="" disabled hidden>בחר</option>
-              <option value="חתונה">חתונה</option>
+              <option value="חתונה" disabled={services.stills} style={services.stills ? { color: '#9ca3af' } : {}}>
+                {services.stills ? 'חתונה (לא זמין עם סטילס)' : 'חתונה'}
+              </option>
               <option value="בר/בת מצווה">בר/בת מצווה</option>
               <option value="אירוע חברה">אירוע חברה</option>
               <option value="אחר">אחר</option>
@@ -831,6 +852,12 @@ export default function BookingScreen() {
                 <Text style={styles.modalSummaryLabel}>תאריך אירוע:</Text>
                 <Text style={styles.modalSummaryValue}>{formatHebrewDate(selectedDate)}</Text>
               </View>
+              {!!location && (
+                <View style={styles.modalSummaryRow}>
+                  <Text style={styles.modalSummaryLabel}>מיקום:</Text>
+                  <Text style={[styles.modalSummaryValue, { maxWidth: 220, textAlign: 'left' }]}>{location}</Text>
+                </View>
+              )}
               <View style={styles.modalSummaryRow}>
                 <Text style={styles.modalSummaryLabel}>שירותים שנבחרו:</Text>
                 <Text style={[styles.modalSummaryValue, { maxWidth: 220, textAlign: 'left' }]}>
@@ -979,6 +1006,12 @@ export default function BookingScreen() {
                     <Text style={styles.summaryLabel}>תאריך אירוע:</Text>
                     <Text style={styles.summaryValue}>{selectedDate}</Text>
                   </View>
+                  {!!location && (
+                    <View style={styles.summaryRow}>
+                      <Text style={styles.summaryLabel}>מיקום:</Text>
+                      <Text style={[styles.summaryValue, { maxWidth: 200, textAlign: 'left' }]}>{location}</Text>
+                    </View>
+                  )}
                   <View style={styles.summaryRow}>
                     <Text style={styles.summaryLabel}>מחיר משוער:</Text>
                     <Text style={[styles.summaryValue, { color: '#10b981' }]}>₪{calculatePrice().toLocaleString()}</Text>
@@ -1247,8 +1280,10 @@ const styles = StyleSheet.create<any>({
     backgroundColor: '#1f2937', borderWidth: 1, borderColor: '#374151'
   },
   chipActive: { backgroundColor: 'rgba(59,130,246,0.2)', borderColor: '#3b82f6' },
+  chipDisabled: { opacity: 0.35, borderColor: '#374151' },
   chipText: { color: '#9ca3af' },
   chipTextActive: { color: '#3b82f6', fontWeight: 'bold' },
+  chipTextDisabled: { color: '#6b7280', fontSize: 12 },
 
   // Services
   serviceBox: {
