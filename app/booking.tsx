@@ -74,6 +74,19 @@ export default function BookingScreen() {
 
   useEffect(() => {
     loadBlockedDates();
+    // Inject safe-area CSS for fixed bottom bar on iOS Safari
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      if (!document.getElementById('nc-booking-bar-css')) {
+        const s = document.createElement('style');
+        s.id = 'nc-booking-bar-css';
+        s.textContent = `
+          .nc-booking-bar {
+            padding-bottom: max(14px, env(safe-area-inset-bottom)) !important;
+          }
+        `;
+        document.head.appendChild(s);
+      }
+    }
   }, []);
 
   // When stills is selected, wedding is not allowed
@@ -722,7 +735,10 @@ export default function BookingScreen() {
 
     if (isMobile) {
       return (
-        <View style={styles.bottomBarMobile}>
+        <View
+          style={styles.bottomBarMobile}
+          {...(Platform.OS === 'web' ? { className: 'nc-booking-bar' } as any : {})}
+        >
           <View style={styles.bottomBarMobilePriceSection}>
             <Text style={styles.bottomBarPriceLabel}>מחיר כולל:</Text>
             <Text style={styles.bottomBarPriceValueMobile}>₪{calculatePrice().toLocaleString()}</Text>
@@ -805,7 +821,7 @@ export default function BookingScreen() {
           </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.pageBody, !showDesktopLayout && styles.pageBodyColumn]}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.pageBody, !showDesktopLayout && styles.pageBodyColumn, isMobile && { paddingBottom: 100 }]}>
           <View style={showDesktopLayout ? styles.leftColumn : styles.columnFull}>
             {renderStep2Details()}
           </View>
@@ -1707,6 +1723,9 @@ const styles = StyleSheet.create<any>({
     borderTopWidth: 1,
     borderTopColor: '#3b82f6',
     gap: 12,
+    ...Platform.select({
+      web: { position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100 } as any,
+    }),
   },
   bottomBarMobilePriceSection: {
     flexDirection: 'row-reverse',
