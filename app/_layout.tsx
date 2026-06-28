@@ -21,8 +21,31 @@ interface TextInputWithDefaultProps extends TextInput {
 (TextInput as unknown as TextInputWithDefaultProps).defaultProps = (TextInput as unknown as TextInputWithDefaultProps).defaultProps || {};
 (TextInput as unknown as TextInputWithDefaultProps).defaultProps!.style = { fontFamily: 'Assistant_400Regular' };
 
-// Web setup: global CSS + favicon + loading overlay
+const LOADER_MIN_MS = 5000;
+
+// Web setup: global CSS + Google Font preload + favicon + loading overlay
 if (Platform.OS === 'web' && typeof document !== 'undefined') {
+  // Record start time for minimum loader duration
+  (window as any).__ncLoaderStart = Date.now();
+
+  // ── Preload Assistant font via Google Fonts (CSS approach — more reliable on iOS Safari) ──
+  if (!document.getElementById('nc-gfont')) {
+    // Preconnect
+    ['https://fonts.googleapis.com', 'https://fonts.gstatic.com'].forEach(href => {
+      const l = document.createElement('link');
+      l.rel = 'preconnect';
+      l.href = href;
+      if (href.includes('gstatic')) l.crossOrigin = 'anonymous';
+      document.head.appendChild(l);
+    });
+    // Font stylesheet — display=block prevents any fallback flash
+    const l = document.createElement('link');
+    l.id = 'nc-gfont';
+    l.rel = 'stylesheet';
+    l.href = 'https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&display=block';
+    document.head.appendChild(l);
+  }
+
   // ── Global CSS ──────────────────────────────────────────────────────────────
   if (!document.getElementById('nc-base-style')) {
     const s = document.createElement('style');
@@ -30,11 +53,16 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
     s.textContent = `
       html {
         scroll-behavior: smooth;
-        /* Prevent iOS Safari from auto-scaling fonts on orientation change */
+        /* Prevent iOS Safari from auto-scaling fonts on orientation change / zoom */
         -webkit-text-size-adjust: 100%;
         text-size-adjust: 100%;
       }
-      * { -webkit-font-smoothing: antialiased; }
+      /* Force Assistant on every element so iOS never shows system font */
+      html, body, * {
+        font-family: 'Assistant', system-ui, -apple-system, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
 
       @keyframes nc-spin {
         from { transform: rotate(0deg); }
@@ -48,7 +76,7 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
         position: fixed; inset: 0; z-index: 9999;
         background: #0F172A;
         display: flex; align-items: center; justify-content: center;
-        transition: opacity 0.55s ease;
+        transition: opacity 0.6s ease;
       }
       #nc-loader.done { opacity: 0; pointer-events: none; }
       #nc-loader svg {
@@ -68,7 +96,7 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
     document.head.appendChild(link);
   }
 
-  // ── Loading overlay (appended to body when ready) ───────────────────────────
+  // ── Loading overlay ──────────────────────────────────────────────────────────
   const injectLoader = () => {
     if (document.getElementById('nc-loader')) return;
     const div = document.createElement('div');
@@ -128,11 +156,18 @@ export default function RootLayout() {
   useEffect(() => {
     if (!fontsLoaded) return;
     if (Platform.OS !== 'web' || typeof document === 'undefined') return;
-    const loader = document.getElementById('nc-loader');
-    if (!loader) return;
-    loader.classList.add('done');
-    const t = setTimeout(() => loader.remove(), 650);
-    return () => clearTimeout(t);
+
+    const elapsed = Date.now() - ((window as any).__ncLoaderStart ?? Date.now());
+    const remaining = Math.max(0, LOADER_MIN_MS - elapsed);
+
+    const dismiss = setTimeout(() => {
+      const loader = document.getElementById('nc-loader');
+      if (!loader) return;
+      loader.classList.add('done');
+      setTimeout(() => loader.remove(), 700);
+    }, remaining);
+
+    return () => clearTimeout(dismiss);
   }, [fontsLoaded]);
 
   if (!fontsLoaded) {

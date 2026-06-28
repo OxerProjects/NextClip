@@ -218,11 +218,11 @@ export default function BookingScreen() {
         {/* Month Navigation Row */}
         <View style={styles.calendarHeaderRow}>
           <TouchableOpacity onPress={handlePrevMonth} style={styles.monthNavBtn}>
-            <Feather name="chevron-right" size={20} color="#fff" />
+            <Feather name="chevron-left" size={20} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.cardSubtitle}>{currentMonthLabel}</Text>
           <TouchableOpacity onPress={handleNextMonth} style={styles.monthNavBtn}>
-            <Feather name="chevron-left" size={20} color="#fff" />
+            <Feather name="chevron-right" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
         
@@ -265,15 +265,6 @@ export default function BookingScreen() {
               })}
             </View>
           </>
-        )}
-        {fullScreen && (
-          <TouchableOpacity
-            style={[styles.submitBtn, { marginTop: 24, opacity: selectedDate ? 1 : 0.4 }]}
-            onPress={() => selectedDate && setCalendarStage(false)}
-            disabled={!selectedDate}
-          >
-            <Text style={styles.submitBtnText}>המשך להזמנה</Text>
-          </TouchableOpacity>
         )}
       </View>
     );
@@ -805,6 +796,13 @@ export default function BookingScreen() {
       {calendarStage ? (
         <View style={styles.calendarStage}>
           {renderStep1Calendar(true)}
+          <TouchableOpacity
+            style={[styles.calendarContinueBtn, !selectedDate && styles.calendarContinueBtnDisabled]}
+            onPress={() => selectedDate && setCalendarStage(false)}
+            disabled={!selectedDate}
+          >
+            <Text style={styles.submitBtnText}>המשך להזמנה</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.pageBody, !showDesktopLayout && styles.pageBodyColumn]}>
@@ -1080,7 +1078,8 @@ const styles = StyleSheet.create<any>({
     flex: 1,
     padding: 0,
     minHeight: 0,
-    justifyContent: 'center',
+    flexDirection: 'column',
+    justifyContent: 'flex-start',
   },
   fullScreenCalendar: {
     flex: 1,
@@ -1327,6 +1326,8 @@ const styles = StyleSheet.create<any>({
   whatsappBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   submitBtn: { backgroundColor: '#374151', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 8, borderWidth: 1, borderColor: '#4b5563' },
   submitBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  calendarContinueBtn: { backgroundColor: '#2563eb', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, marginHorizontal: 16, marginBottom: 16, borderRadius: 12 },
+  calendarContinueBtnDisabled: { opacity: 0.4 },
 
   // Modal styles
   modalOverlay: {
