@@ -4,6 +4,7 @@ import { Colors } from '@/constants/theme';
 import { Link } from 'expo-router';
 import { ContactSection } from '@/components/home/ContactSection';
 import { Footer } from '@/components/Footer';
+import { Seo } from '@/components/Seo';
 
 const SPECIALTIES_DATA = [
   {
@@ -117,9 +118,16 @@ export default function SpecialtiesScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView 
-        style={styles.scrollView} 
+    <>
+      <Seo
+        path="/specialties"
+        title="תחומי התמחות — חתונות, בר מצווה ואירועי חברה"
+        description="עמדת צילום AI ומגנטים לחתונות ואירועי יוקרה, בר/בת מצווה ואירועי חברה. פתרון צילום מותאם לאופי האירוע, לקהל ולאולם."
+        breadcrumb={[{ name: 'תחומי התמחות', path: '/specialties' }]}
+      />
+      <View style={styles.container}>
+      <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
@@ -140,7 +148,8 @@ export default function SpecialtiesScreen() {
         {/* Footer */}
         <Footer />
       </ScrollView>
-    </View>
+      </View>
+    </>
   );
 }
 

@@ -1,3 +1,4 @@
+import { Seo } from '@/components/Seo';
 import { Colors } from '@/constants/theme';
 import { ClientEvent, getClientEvents } from '@/utils/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -151,17 +152,33 @@ export default function ClientEventScreen() {
     }
   };
 
+  // Static rendering hits the `loading` branch, so the tab title has to come
+  // from an element shared by every branch — not just the main return.
+  const seo = (
+    <Seo
+      path="/client-event"
+      title="גלריית האירוע הפרטית שלכם"
+      description="הגלריה הפרטית של האירוע שלכם."
+      noindex
+    />
+  );
+
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0056DB" />
-        <Text style={styles.loadingText}>טוען את החומרים מהאירוע שלכם...</Text>
-      </View>
+      <>
+        {seo}
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#0056DB" />
+          <Text style={styles.loadingText}>טוען את החומרים מהאירוע שלכם...</Text>
+        </View>
+      </>
     );
   }
 
   if (!event || (daysRemaining !== 'never' && daysRemaining <= 0)) {
     return (
+      <>
+      {seo}
       <View style={styles.errorContainer}>
         <Feather name="alert-triangle" size={60} color="#ef4444" style={{ marginBottom: 20 }} />
         <Text style={styles.errorTitle}>האירוע לא נמצא או פג תוקף</Text>
@@ -170,11 +187,14 @@ export default function ClientEventScreen() {
           <Text style={styles.backBtnText}>חזרה להתחברות</Text>
         </Pressable>
       </View>
+      </>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <>
+      {seo}
+      <View style={styles.container}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -410,7 +430,8 @@ export default function ClientEventScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+      </View>
+    </>
   );
 }
 

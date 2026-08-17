@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+# Private areas — client galleries and the admin panel must never be indexed.
+Disallow: /dashboard
+Disallow: /client-event
+Disallow: /login
+Disallow: /contact
+Disallow: /uploads/
+
+Sitemap: https://nextclipstudio.com/sitemap.xml

@@ -1,8 +1,9 @@
 {
   "expo": {
-    "name": "temp_app",
-    "slug": "temp_app",
+    "name": "NextClip",
+    "slug": "nextclip",
     "version": "1.0.0",
+    "description": "עמדת צילום AI, מגנטים וצילום סטילס לחתונות, בר/בת מצווה ואירועי חברה.",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "tempapp",
@@ -23,7 +24,13 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "name": "NextClip",
+      "shortName": "NextClip",
+      "lang": "he",
+      "dir": "rtl",
+      "themeColor": "#0F172A",
+      "backgroundColor": "#0F172A",
+      "description": "עמדת צילום AI, מגנטים וצילום סטילס לחתונות, בר/בת מצווה ואירועי חברה."
     },
     "plugins": [
       "expo-router",

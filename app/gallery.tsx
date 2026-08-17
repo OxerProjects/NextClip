@@ -1,3 +1,4 @@
+import { Seo } from '@/components/Seo';
 import { Colors } from '@/constants/theme';
 import { GalleryImage, getGalleryImages, GRID_TOTAL_WIDTH } from '@/utils/storage';
 import { Feather, FontAwesome } from '@expo/vector-icons';
@@ -360,7 +361,19 @@ export default function GalleryPage() {
     return arr;
   }, []);
 
-  if (!ready) return <View style={styles.container} />;
+  // Rendered in both branches below: `ready` is false during static rendering,
+  // so putting this only in the main return would ship a titleless HTML file.
+  const seo = (
+    <Seo
+      path="/gallery"
+      title="גלריית תמונות מאירועים"
+      description="גלריית תמונות מאירועים שליווינו: עמדות צילום AI, מגנטים מעוצבים וצילומי סטילס מחתונות, בר/בת מצווה ואירועי חברה. הציצו לתוצאות האמיתיות."
+      image="/emda/e1.jpeg"
+      breadcrumb={[{ name: 'גלריה', path: '/gallery' }]}
+    />
+  );
+
+  if (!ready) return <>{seo}<View style={styles.container} /></>;
 
   // Mobile: derive transform style from Animated values
   const mobileCanvasStyle = Platform.OS !== 'web' ? {
@@ -372,7 +385,9 @@ export default function GalleryPage() {
   } : {};
 
   return (
-    <View style={styles.container}>
+    <>
+      {seo}
+      <View style={styles.container}>
 
       {/* ── Draggable infinite canvas ── */}
       <View
@@ -479,7 +494,8 @@ export default function GalleryPage() {
         </View>
       )}
 
-    </View>
+      </View>
+    </>
   );
 }
 

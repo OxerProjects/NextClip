@@ -1,3 +1,4 @@
+import { Seo } from '@/components/Seo';
 import { Colors } from '@/constants/theme';
 import { getBookings, saveBooking } from '@/utils/storage';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
@@ -802,7 +803,14 @@ export default function BookingScreen() {
   const showDesktopLayout = isLargeScreen && Platform.OS === 'web';
 
   return (
-    <View style={styles.pageContainer}>
+    <>
+      <Seo
+        path="/booking"
+        title="הזמנת עמדת צילום — בדיקת תאריך פנוי"
+        description="בדקו אם התאריך שלכם פנוי וקבלו הצעת מחיר לעמדת צילום AI, מגנטים או צילום סטילס. בחירת שירותים, מספר אורחים ושעות — והזמנה תוך דקה."
+        breadcrumb={[{ name: 'הזמנות', path: '/booking' }]}
+      />
+      <View style={styles.pageContainer}>
       <View style={styles.pageMiniHeader}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Feather name="arrow-right" size={18} color="#fff" />
@@ -1075,7 +1083,8 @@ export default function BookingScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+      </View>
+    </>
   );
 }
 

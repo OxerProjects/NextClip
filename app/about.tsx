@@ -1,5 +1,6 @@
 import { Footer } from '@/components/Footer';
 import { ContactSection } from '@/components/home/ContactSection';
+import { Seo } from '@/components/Seo';
 import { Colors } from '@/constants/theme';
 import React from 'react';
 import { Image, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -9,7 +10,15 @@ export default function AboutScreen() {
   const isMobile = width < 768;
 
   return (
-    <View style={styles.container}>
+    <>
+      <Seo
+        path="/about"
+        title="קצת עלינו"
+        description="NextClip מתמחה בעמדות צילום לאירועים המשלבות חוויה אינטראקטיבית, עיצוב יוקרתי וטכנולוגיית AI מתקדמת. שירות אישי ואיכות ללא פשרות בכל אירוע."
+        ogType="article"
+        breadcrumb={[{ name: 'קצת עלינו', path: '/about' }]}
+      />
+      <View style={styles.container}>
 
       <ScrollView 
         style={styles.scrollView} 
@@ -69,7 +78,8 @@ export default function AboutScreen() {
         {/* Footer */}
         <Footer />
       </ScrollView>
-    </View>
+      </View>
+    </>
   );
 }
 

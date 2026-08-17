@@ -1,3 +1,4 @@
+import { Seo } from '@/components/Seo';
 import { Colors } from '@/constants/theme';
 import { ClientEvent, deleteClientEvent, deleteGalleryImage, GalleryImage, getClientEvents, getGalleryImages, saveClientEvent, saveGalleryImage, getLeads, getBookings, ContactLead, BookingLead, saveBooking } from '@/utils/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -363,7 +364,14 @@ export default function DashboardPage() {
   };
 
   return (
-    <View style={styles.container}>
+    <>
+      <Seo
+        path="/dashboard"
+        title="לוח בקרה"
+        description="ניהול לקוחות, גלריות ולידים."
+        noindex
+      />
+      <View style={styles.container}>
       {/* Dashboard Top Header */}
       <View style={StyleSheet.flatten([styles.header, isMobile && styles.mobileHeader])}>
         {/* LEFT SIDE: Logo (Bulletproof redirection using direct onPress router) */}
@@ -935,7 +943,8 @@ export default function DashboardPage() {
         )}
 
       </ScrollView>
-    </View>
+      </View>
+    </>
   );
 }
 

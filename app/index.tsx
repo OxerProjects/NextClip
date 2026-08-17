@@ -8,6 +8,7 @@ import { TestimonialsSection } from '@/components/home/TestimonialsSection';
 import { GalleryMarquee } from '@/components/home/GalleryMarquee';
 import { ContactSection } from '@/components/home/ContactSection';
 import { Footer } from '@/components/Footer';
+import { Seo } from '@/components/Seo';
 
 const { height: screenHeight } = Dimensions.get('window');
 
@@ -24,7 +25,14 @@ export default function HomeScreen() {
   });
 
   return (
-    <View style={styles.container}>
+    <>
+      <Seo
+        path="/"
+        title="עמדת צילום AI לאירועים, מגנטים וצילום סטילס | NextClip"
+        description="עמדת צילום AI עם עשרות אפקטים, מגנטים באיכות פרימיום וצילום סטילס מקצועי לחתונות, בר/בת מצווה ואירועי חברה. הדפסה במקום, גלריה דיגיטלית ותמונות ללא הגבלה."
+        image="/emda/e1.jpeg"
+      />
+      <View style={styles.container}>
 
       <Animated.ScrollView
         style={styles.container}
@@ -64,7 +72,8 @@ export default function HomeScreen() {
           <Footer />
         </View>
       </Animated.ScrollView>
-    </View>
+      </View>
+    </>
   );
 }
 

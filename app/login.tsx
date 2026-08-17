@@ -1,3 +1,4 @@
+import { Seo } from '@/components/Seo';
 import { Colors } from '@/constants/theme';
 import { getClientEvents } from '@/utils/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -54,7 +55,14 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <>
+      <Seo
+        path="/login"
+        title="אזור אישי ללקוחות"
+        description="כניסה עם קוד גישה לגלריית האירוע הפרטית שלכם."
+        noindex
+      />
+      <View style={styles.container}>
       {/* Ambient Glowing Blobs */}
       <View style={styles.blueBlob} pointerEvents="none" />
       <View style={styles.purpleBlob} pointerEvents="none" />
@@ -108,7 +116,8 @@ export default function LoginScreen() {
           </Text>
         </Pressable>
       </View>
-    </View>
+      </View>
+    </>
   );
 }
 

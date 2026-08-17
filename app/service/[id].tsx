@@ -1,3 +1,5 @@
+import { Seo } from '@/components/Seo';
+import { serviceSchema } from '@/constants/seo';
 import { Colors } from '@/constants/theme';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -38,10 +40,22 @@ const SERVICES_DATA: Record<string, {
   badgeText?: string; description: string; features: string[];
   galleryImages: string[]; galleryType: 'wood' | 'clothesline' | 'film';
   bookingSlug: string;
+  /** SEO: page title (brand suffix is appended automatically). */
+  seoTitle: string;
+  /** SEO: meta description + og:description, ~150 chars. */
+  seoDescription: string;
+  /** SEO: social share image — prefer a light jpeg/png over webp for scrapers. */
+  ogImage: string;
+  /** SEO: real price range for AggregateOffer (prices vary by guest count). */
+  lowPrice: number; highPrice?: number;
 }> = {
   magnets: {
     id: 'magnets', title: 'מגנטים', subtitle: 'מזכרת מעוצבת שנשארת לנצח',
     descriptionImage: '/magnets.png',
+    seoTitle: 'צילום מגנטים לאירועים — הדפסה במקום',
+    seoDescription: 'צילום והדפסת מגנטים לאירועים בעיצוב אישי לפי סגנון האירוע, חומרים עמידים, מסירה מיידית באירוע וכמות ללא הגבלה. מחירים החל מ-1,200 ₪.',
+    ogImage: '/magnets/m1.jpeg',
+    lowPrice: 1200, highPrice: 1700,
     description: 'כל מגנט מעוצב באופן אישי לבחירתכם ולפי סגנון האירוע. על החומרים שלנו אנחנו לא מתפשרים – תוצאה של מזכרת מעוצבת, יוקרתית ועמידה בדיוק כמו הרגעים שהיא מתעדת.',
     features: ['עיצוב אישי לפי סגנון האירוע', 'חומרים איכותיים ועמידים', 'הדפסה באיכות פרימיום', 'מסירה מיידית באירוע', 'כמות ללא הגבלה', 'אפשרות ללוגו ושמות', 'צילום מקצועי'],
     galleryImages: ['/magnets/m1.jpeg', '/magnets/m2.jpeg', '/magnets/m3.jpeg', '/magnets/m4.jpeg', '/magnets/m5.jpeg', '/magnets/m6.jpeg', '/magnets/m7.jpeg', '/magnets/m8.jpeg', '/magnets/m9.jpeg'],
@@ -50,6 +64,10 @@ const SERVICES_DATA: Record<string, {
   'ai-booth': {
     id: 'ai-booth', title: 'עמדת צילום AI', subtitle: 'האטרקציה החדשנית שהאורחים שלכם לא ישכחו',
     descriptionImage: '/emda/e7.png', badgeText: 'הבחירה הפופולרית',
+    seoTitle: 'עמדת צילום AI לאירועים — אפקטים והדפסה במקום',
+    seoDescription: 'עמדת צילום AI מהודרת עם עשרות אפקטים, הדפסת מגנטים במקום, שיתוף מיידי לנייד, שטיח אדום ותאורה מקצועית. אטרקציה שהאורחים לא ישכחו. מ-1,650 ₪.',
+    ogImage: '/emda/e1.jpeg',
+    lowPrice: 1650, highPrice: 3000,
     description: 'לא עוד עמדת צילום משעממת – העמדה שלנו היא אטרקציה שלא רואים באף אירוע אחר.         עמדת צילום AI מהודרת הכוללת אביזרים, תאורה מקצועית והדפסת מגנטים איכותיים שכל אורח ישמח לקבל.',
     features: ['מגוון עצום של אפקטי AI מיוחדים', 'שיתוף מיידי לנייד', 'גלריה דיגיטלית לכל האורחים', 'הדפסה על מגנט', 'חצובות תאורה מקצועיות', 'מראה מעוצבת עם שמות המתחתנים', 'יצירת אפקטים בהתאמה אישית', 'שטיח אדום + עמודי חבלול', 'בליווי אנשי צוות'],
     galleryImages: ['/emda/e7.png', '/emda/e1.jpeg', '/emda/e2.jpeg', '/emda/e4.jpeg', '/emda/e5.jpeg', '/emda/e6.png', '/emda/e8.png', '/emda/e9.jpeg', '/emda/e10.jpeg', '/emda/e11.jpeg', '/emda/e12.jpeg', '/emda/e13.jpeg'],
@@ -58,6 +76,10 @@ const SERVICES_DATA: Record<string, {
   stills: {
     id: 'stills', title: 'צילום סטילס', subtitle: 'כל רגע, בצורה הכי מחמיאה שיש',
     descriptionImage: '/cam.webp', badgeText: 'הבחירה של הלקוחות שלנו',
+    seoTitle: 'צילום סטילס לאירועים — צלמים מקצועיים',
+    seoDescription: 'צילום סטילס מקצועי לאירועים: צלמים מנוסים, ציוד מתקדם, עריכה מקצועית לכל התמונות וגלריה דיגיטלית עם זכויות שימוש מלאות. 3 שעות ב-1,300 ₪.',
+    ogImage: '/stils/s1.jpeg',
+    lowPrice: 1300,
     description: 'צלמים מנוסים המקפידים על תיעוד מקצועי של הרגעים החשובים ביותר, עם דגש על איכות, רגש ותשומת לב לכל פרט.',
     features: ['ציוד צילום מתקדם', 'עריכה מקצועית לכל התמונות', 'מסירת גלריה דיגיטלית', 'זכויות שימוש מלאות', 'תיאום מראש עם הצוות', 'קבלת התמונות בדיסק-און-קי '],
     galleryImages: ['/magnets/m1.jpeg', '/magnets/m2.jpeg', '/magnets/m3.jpeg', '/magnets/m4.jpeg', '/magnets/m5.jpeg', '/magnets/m6.jpeg', '/magnets/m7.jpeg', '/magnets/m8.jpeg', '/magnets/m9.jpeg'],
@@ -66,6 +88,16 @@ const SERVICES_DATA: Record<string, {
 };
 
 const SERVICE_SLUG_MAP: Record<string, string> = { '1': 'magnets', '2': 'ai-booth', '3': 'stills' };
+
+/**
+ * Prerender each service page at build time. Without this, /service/1..3 have no
+ * static HTML, so Vercel's catch-all rewrite serves index.html instead — meaning
+ * crawlers and WhatsApp/Facebook scrapers would read the HOME page's meta tags
+ * on every service URL.
+ */
+export async function generateStaticParams(): Promise<Record<string, string>[]> {
+  return Object.keys(SERVICE_SLUG_MAP).map((id) => ({ id }));
+}
 
 // ─── Booth effects (before / after) ─────────────────────────────────────────────
 //
@@ -869,14 +901,43 @@ export default function ServiceDetailPage() {
 
   if (!service) {
     return (
-      <View style={styles.notFound}>
-        <Text style={styles.notFoundText}>שירות לא נמצא</Text>
-      </View>
+      <>
+        <Seo
+          path={`/service/${id ?? ''}`}
+          title="שירות לא נמצא"
+          description="השירות המבוקש לא נמצא."
+          noindex
+        />
+        <View style={styles.notFound}>
+          <Text style={styles.notFoundText}>שירות לא נמצא</Text>
+        </View>
+      </>
     );
   }
 
+  const servicePath = `/service/${id}`;
+
   return (
-    <View style={styles.root}>
+    <>
+      <Seo
+        path={servicePath}
+        title={service.seoTitle}
+        description={service.seoDescription}
+        image={service.ogImage}
+        breadcrumb={[
+          { name: 'שירותים', path: '/specialties' },
+          { name: service.title, path: servicePath },
+        ]}
+        schema={serviceSchema({
+          name: service.title,
+          description: service.seoDescription,
+          path: servicePath,
+          image: service.ogImage,
+          lowPrice: service.lowPrice,
+          highPrice: service.highPrice,
+        })}
+      />
+      <View style={styles.root}>
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
@@ -932,7 +993,8 @@ export default function ServiceDetailPage() {
           />
         </ScrollView>
       </Animated.View>
-    </View>
+      </View>
+    </>
   );
 }
 

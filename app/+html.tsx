@@ -1,17 +1,48 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 import type { PropsWithChildren } from 'react';
+import { SITE_NAME, organizationSchema, websiteSchema } from '@/constants/seo';
 
 /**
  * This file is web-only and used to configure the root HTML for every web page during static rendering.
  * The contents of this function only run in Node.js environments and do not have access to the DOM or browser APIs.
  */
 export default function Root({ children }: PropsWithChildren) {
+  // Site-wide entities. Google merges all JSON-LD blocks on a page, so the
+  // per-page graph can reference these by @id without repeating them.
+  const siteSchema = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@graph': [organizationSchema(), websiteSchema()],
+  });
+
   return (
     <html lang="he" dir="rtl">
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
+
+        {/* ── Branding / PWA ─────────────────────────────────────────────── */}
+        <meta name="theme-color" content="#0F172A" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content={SITE_NAME} />
+        <meta name="application-name" content={SITE_NAME} />
+        <meta name="author" content={SITE_NAME} />
+        {/* Let mobile browsers turn the phone number into a tap-to-call link */}
+        <meta name="format-detection" content="telephone=yes" />
+
+        <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+        <link rel="apple-touch-icon" href="/logo.png" />
+
+        {/* Font host handshake happens during HTML parse instead of after hydration */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+
+        {/* ── Site-wide structured data ──────────────────────────────────── */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: siteSchema }}
+        />
 
         {/*
           Disable body scrolling on web. This makes ScrollView components work closer to how they do on native.

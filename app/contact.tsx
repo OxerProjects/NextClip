@@ -1,12 +1,18 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors } from '@/constants/theme';
+import { Seo } from '@/components/Seo';
 
 export default function ContactScreen() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>צור קשר</Text>
-    </View>
+    <>
+      {/* noindex: placeholder page with no real content yet — the live contact
+          form lives in ContactSection on the home page. */}
+      <Seo path="/contact" title="צור קשר" description="דברו איתנו — NextClip." noindex />
+      <View style={styles.container}>
+        <Text style={styles.title}>צור קשר</Text>
+      </View>
+    </>
   );
 }
 
