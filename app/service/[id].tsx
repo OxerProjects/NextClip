@@ -82,7 +82,7 @@ const SERVICES_DATA: Record<string, {
     lowPrice: 1300,
     description: 'צלמים מנוסים המקפידים על תיעוד מקצועי של הרגעים החשובים ביותר, עם דגש על איכות, רגש ותשומת לב לכל פרט.',
     features: ['ציוד צילום מתקדם ', 'עריכה מקצועית לכל התמונות', 'מסירת גלריה דיגיטלית', 'זכויות שימוש מלאות', 'תיאום מראש עם הצוות', 'קבלת התמונות בדיסק-און-קי '],
-    galleryImages: ['stils/s1.jpeg, stils/s2.jpeg, stils/s3.jpeg, stils/s4.jpeg, stils/s5.jpeg, stils/s6.jpeg, stils/s7.jpeg, stils/s8.jpeg, stils/s9.jpeg, stils/s10.jpeg, stils/s11.jpeg'],
+    galleryImages: ['stils/s1.jpeg', 'stils/s2.jpeg', 'stils/s3.jpeg', 'stils/s4.jpeg', 'stils/s5.jpeg', 'stils/s6.jpeg', 'stils/s7.jpeg', 'stils/s8.jpeg', 'stils/s9.jpeg', 'stils/s10.jpeg', 'stils/s11.jpeg'],
     galleryType: 'film', bookingSlug: 'stills',
   },
 };
