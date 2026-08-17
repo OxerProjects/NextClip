@@ -9,17 +9,27 @@ import { useFonts } from 'expo-font';
 import { Assistant_400Regular, Assistant_600SemiBold, Assistant_700Bold } from '@expo-google-fonts/assistant';
 import { Text, TextInput } from 'react-native';
 
+// Web-only fallback chain: if the bundled Assistant_400Regular webfont ever
+// fails to load or gets evicted (a known iOS Safari memory-pressure quirk),
+// text falls back to the CDN-loaded 'Assistant' family instead of jumping
+// straight to the browser's ugly system default. react-native-web passes
+// fontFamily straight through to CSS, so a comma list works on web only —
+// native platforms only ever read the first token.
+const FONT_FALLBACK = Platform.OS === 'web'
+  ? 'Assistant_400Regular, Assistant, "Noto Sans Hebrew", system-ui, sans-serif'
+  : 'Assistant_400Regular';
+
 interface TextWithDefaultProps extends Text {
   defaultProps?: { style?: any };
 }
 (Text as unknown as TextWithDefaultProps).defaultProps = (Text as unknown as TextWithDefaultProps).defaultProps || {};
-(Text as unknown as TextWithDefaultProps).defaultProps!.style = { fontFamily: 'Assistant_400Regular' };
+(Text as unknown as TextWithDefaultProps).defaultProps!.style = { fontFamily: FONT_FALLBACK };
 
 interface TextInputWithDefaultProps extends TextInput {
   defaultProps?: { style?: any };
 }
 (TextInput as unknown as TextInputWithDefaultProps).defaultProps = (TextInput as unknown as TextInputWithDefaultProps).defaultProps || {};
-(TextInput as unknown as TextInputWithDefaultProps).defaultProps!.style = { fontFamily: 'Assistant_400Regular' };
+(TextInput as unknown as TextInputWithDefaultProps).defaultProps!.style = { fontFamily: FONT_FALLBACK };
 
 const LOADER_MIN_MS = 2000;
 
