@@ -21,7 +21,7 @@ interface TextInputWithDefaultProps extends TextInput {
 (TextInput as unknown as TextInputWithDefaultProps).defaultProps = (TextInput as unknown as TextInputWithDefaultProps).defaultProps || {};
 (TextInput as unknown as TextInputWithDefaultProps).defaultProps!.style = { fontFamily: 'Assistant_400Regular' };
 
-const LOADER_MIN_MS = 5000;
+const LOADER_MIN_MS = 2000;
 
 // Web setup: global CSS + Google Font preload + favicon + loading overlay
 if (Platform.OS === 'web' && typeof document !== 'undefined') {
