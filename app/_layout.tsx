@@ -81,7 +81,7 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
       #nc-loader.done { opacity: 0; pointer-events: none; }
       #nc-loader svg {
         width: 72px; height: 72px;
-        animation: nc-spin 2.6s linear infinite, nc-pulse 2.6s ease-in-out infinite;
+        animation: nc-spin 2s linear infinite, nc-pulse 2s ease-in-out infinite;
       }
     `;
     document.head.appendChild(s);
