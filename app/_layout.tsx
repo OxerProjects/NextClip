@@ -1,17 +1,16 @@
+import { Colors } from '@/constants/theme';
+import { Assistant_400Regular, Assistant_600SemiBold, Assistant_700Bold } from '@expo-google-fonts/assistant';
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
-import { I18nManager, Platform } from 'react-native';
-import { Colors } from '@/constants/theme';
 import { useEffect } from 'react';
-import { useFonts } from 'expo-font';
-import { Assistant_400Regular, Assistant_600SemiBold, Assistant_700Bold } from '@expo-google-fonts/assistant';
-import { Text, TextInput } from 'react-native';
+import { I18nManager, Platform, Text, TextInput } from 'react-native';
+import 'react-native-reanimated';
 
 // Web-only fallback chain: if the bundled Assistant_400Regular webfont ever
 // fails to load or gets evicted (a known iOS Safari memory-pressure quirk),
-// text falls back to the CDN-loaded 'Assistant' family instead of jumping
+// text falls back to the CDN 'Assistant' family instead of jumping
 // straight to the browser's ugly system default. react-native-web passes
 // fontFamily straight through to CSS, so a comma list works on web only —
 // native platforms only ever read the first token.
