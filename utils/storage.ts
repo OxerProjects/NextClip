@@ -83,22 +83,25 @@ const compressImageWeb = async (uri: string, maxDim = 1200, quality = 0.75): Pro
 export const getGalleryImages = async (): Promise<GalleryImage[]> => {
   try {
     const apiGallery = await fetchWithFallback('get_gallery');
-    if (apiGallery && Array.isArray(apiGallery) && apiGallery.length > 0) {
+    if (apiGallery && Array.isArray(apiGallery)) {
+      // The API call succeeded — it's the source of truth, even when the
+      // gallery is genuinely empty. Treating an empty result the same as a
+      // failed/unreachable call (old behavior) was why an empty gallery
+      // used to render random stock "default" photos instead of nothing.
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(apiGallery));
       return apiGallery;
     }
+    // API unreachable — fall back to whatever was last cached locally.
     const data = await AsyncStorage.getItem(STORAGE_KEY);
     if (data) {
       const parsed = JSON.parse(data);
       if (parsed.length > 0 && parsed[0].col === undefined) {
         await AsyncStorage.removeItem(STORAGE_KEY);
-        return generateMockImages();
+        return [];
       }
       return parsed;
     }
-    const mock = generateMockImages();
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(mock));
-    return mock;
+    return [];
   } catch (error) {
     console.error('Failed to load images', error);
     return [];
@@ -141,36 +144,6 @@ export const saveGalleryImage = async (image: Omit<GalleryImage, 'id' | 'col' | 
   } catch (error) {
     console.error('Failed to save image', error);
   }
-};
-
-const generateMockImages = (): GalleryImage[] => {
-  const categories = ['#חתונה', '#בר מצווה', '#בת מצווה', '#אירוע חברה'];
-  const images: GalleryImage[] = [];
-  const colHeights = new Array(NUM_COLS).fill(0);
-
-  for (let i = 0; i < 50; i++) {
-    let minCol = 0;
-    for (let c = 1; c < NUM_COLS; c++) {
-      if (colHeights[c] < colHeights[minCol]) minCol = c;
-    }
-
-    const heights = [200, 250, 300, 350, 400];
-    const h = heights[Math.floor(Math.random() * heights.length)];
-
-    images.push({
-      id: `mock-${i}`,
-      uri: `https://picsum.photos/seed/nc${i + 1}/${IMG_WIDTH}/${h}`,
-      category: categories[Math.floor(Math.random() * categories.length)],
-      width: IMG_WIDTH,
-      height: h,
-      col: minCol,
-      row_y: colHeights[minCol],
-    });
-
-    colHeights[minCol] += h + GAP;
-  }
-
-  return images;
 };
 
 // --- CLOUD API DATABASE CONFIG & UTILS ---
