@@ -22,7 +22,7 @@ const SERVICES_DATA = [
     id: 2,
     title: 'עמדת צילום AI',
     text: 'אטרקציה שלא רואים באף אירוע אחר! עמדת צילום חגיגית המשלבת אפקטי AI מרהיבים, שטיח אדום, תאורה מקצועית ושיתוף מיידי לנייד.',
-    image: '/main.png',
+    image: '/emda1.png',
     isProminent: true,
     badgeText: 'הבחירה הפופולרית',
     price: '1,650',
