@@ -5,10 +5,64 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 
 type ActiveTab = 'clients' | 'gallery' | 'calendar' | 'leads';
+
+/**
+ * Binds native HTML5 drag-and-drop to a View's underlying DOM node — React
+ * Native Web's Responder system swallows drag events, so this bypasses it
+ * directly. Reused by every upload area in the dashboard (event images,
+ * public gallery). `enabled` should track whether the drop zone is actually
+ * mounted/visible (e.g. the active tab) to avoid binding to a hidden node.
+ */
+function useFileDropZone(enabled: boolean, onFiles: (files: File[]) => void) {
+  const ref = useRef<any>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !enabled) return;
+
+    let domNode: any = null;
+    const preventDefault = (e: DragEvent) => { e.preventDefault(); e.stopPropagation(); };
+    const handleDragIn = (e: DragEvent) => { preventDefault(e); setIsDragging(true); };
+    const handleDragOut = (e: DragEvent) => { preventDefault(e); setIsDragging(false); };
+    const handleDropFile = (e: DragEvent) => {
+      preventDefault(e);
+      setIsDragging(false);
+      const files = e.dataTransfer?.files;
+      if (!files) return;
+      const imageFiles = Array.from(files).filter((f: File) => f.type.startsWith('image/'));
+      if (imageFiles.length) onFiles(imageFiles);
+    };
+
+    // Small delay so the DOM node exists before we try to bind to it.
+    const timer = setTimeout(() => {
+      const el = ref.current;
+      if (!el) return;
+      domNode = el.getScrollableNode ? el.getScrollableNode() : el;
+      if (!domNode) return;
+
+      domNode.addEventListener('dragenter', handleDragIn);
+      domNode.addEventListener('dragover', preventDefault);
+      domNode.addEventListener('dragleave', handleDragOut);
+      domNode.addEventListener('drop', handleDropFile);
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+      if (domNode) {
+        domNode.removeEventListener('dragenter', handleDragIn);
+        domNode.removeEventListener('dragover', preventDefault);
+        domNode.removeEventListener('dragleave', handleDragOut);
+        domNode.removeEventListener('drop', handleDropFile);
+      }
+    };
+  }, [enabled, onFiles]);
+
+  return { ref, isDragging };
+}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -30,15 +84,9 @@ export default function DashboardPage() {
   const [eventDuration, setEventDuration] = useState<'30' | '60' | '90' | 'never'>('30');
   const [eventImages, setEventImages] = useState<string[]>([]);
 
-  // Web drag and drop states for event images
-  const [isDragging, setIsDragging] = useState(false);
-  const dropZoneRef = useRef<any>(null);
-
   // --- PUBLIC GALLERY STATES ---
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [imageWidth, setImageWidth] = useState(0);
-  const [imageHeight, setImageHeight] = useState(0);
+  const [selectedImages, setSelectedImages] = useState<{ uri: string; width: number; height: number }[]>([]);
   const [galleryCategory, setGalleryCategory] = useState('#חתונה');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [categoriesList, setCategoriesList] = useState(['#חתונה', '#בר מצווה', '#בת מצווה', '#אירוע חברה']);
@@ -86,67 +134,6 @@ export default function DashboardPage() {
     checkAuth();
   }, []);
 
-  // Native HTML5 Drag and Drop event listener attachments to completely bypass React Native's Responder system blockages on Web
-  useEffect(() => {
-    if (Platform.OS !== 'web' || !showEventForm) return;
-
-    // Small delay to ensure the DOM node is rendered and attached
-    const timer = setTimeout(() => {
-      const el = dropZoneRef.current;
-      if (!el) return;
-
-      const domNode = el.getScrollableNode ? el.getScrollableNode() : el;
-      if (!domNode) return;
-
-      const preventDefault = (e: DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-      };
-
-      const handleDragIn = (e: DragEvent) => {
-        preventDefault(e);
-        setIsDragging(true);
-      };
-
-      const handleDragOut = (e: DragEvent) => {
-        preventDefault(e);
-        setIsDragging(false);
-      };
-
-      const handleDropFile = (e: DragEvent) => {
-        preventDefault(e);
-        setIsDragging(false);
-        const files = e.dataTransfer?.files;
-        if (files) {
-          Array.from(files).forEach((file: File) => {
-            if (file.type.startsWith('image/')) {
-              const reader = new FileReader();
-              reader.onload = (event: any) => {
-                if (event.target?.result) {
-                  setEventImages(prev => [...prev, event.target.result]);
-                }
-              };
-              reader.readAsDataURL(file);
-            }
-          });
-        }
-      };
-
-      domNode.addEventListener('dragenter', handleDragIn);
-      domNode.addEventListener('dragover', preventDefault);
-      domNode.addEventListener('dragleave', handleDragOut);
-      domNode.addEventListener('drop', handleDropFile);
-
-      return () => {
-        domNode.removeEventListener('dragenter', handleDragIn);
-        domNode.removeEventListener('dragover', preventDefault);
-        domNode.removeEventListener('dragleave', handleDragOut);
-        domNode.removeEventListener('drop', handleDropFile);
-      };
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, [showEventForm]);
 
   const loadAllData = async () => {
     // Check if the Vercel Blob is configured
@@ -260,6 +247,20 @@ export default function DashboardPage() {
     }
   };
 
+  const handleEventFilesDropped = useCallback((files: File[]) => {
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (event: any) => {
+        if (event.target?.result) {
+          setEventImages(prev => [...prev, event.target.result]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }, []);
+
+  const { ref: eventDropRef, isDragging: isDraggingEvent } = useFileDropZone(showEventForm, handleEventFilesDropped);
+
   const handleSaveEvent = async () => {
     if (!eventName.trim() || !eventCode.trim() || !eventDate.trim()) {
       alert('אנא מלא את כל שדות החובה');
@@ -280,45 +281,65 @@ export default function DashboardPage() {
   };
 
   // --- PUBLIC GALLERY HANDLERS ---
-  const pickGalleryImage = async () => {
+  const pickGalleryImages = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
       allowsEditing: false,
       quality: 0.8,
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      setSelectedImage(result.assets[0].uri);
-      setImageWidth(result.assets[0].width);
-      setImageHeight(result.assets[0].height);
+      const picked = result.assets.map(a => ({ uri: a.uri, width: a.width, height: a.height }));
+      setSelectedImages(prev => [...prev, ...picked]);
     }
   };
 
+  const handleGalleryFilesDropped = useCallback((files: File[]) => {
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (event: any) => {
+        const dataUrl = event.target?.result;
+        if (!dataUrl) return;
+        const img = new (globalThis as any).Image();
+        img.onload = () => {
+          setSelectedImages(prev => [...prev, { uri: dataUrl, width: img.width, height: img.height }]);
+        };
+        img.src = dataUrl;
+      };
+      reader.readAsDataURL(file);
+    });
+  }, []);
+
+  const { ref: galleryDropRef, isDragging: isDraggingGallery } = useFileDropZone(activeTab === 'gallery', handleGalleryFilesDropped);
+
   const handleUploadGallery = async () => {
-    if (!selectedImage) return;
+    if (selectedImages.length === 0) return;
     setIsUploading(true);
 
     const MAX_DIM = 600;
-    let w = imageWidth || 400;
-    let h = imageHeight || 400;
-    if (w > MAX_DIM || h > MAX_DIM) {
-      if (w > h) {
-        h = (h / w) * MAX_DIM;
-        w = MAX_DIM;
-      } else {
-        w = (w / h) * MAX_DIM;
-        h = MAX_DIM;
+    for (const img of selectedImages) {
+      let w = img.width || 400;
+      let h = img.height || 400;
+      if (w > MAX_DIM || h > MAX_DIM) {
+        if (w > h) {
+          h = (h / w) * MAX_DIM;
+          w = MAX_DIM;
+        } else {
+          w = (w / h) * MAX_DIM;
+          h = MAX_DIM;
+        }
       }
+
+      await saveGalleryImage({
+        uri: img.uri,
+        category: galleryCategory,
+        width: w,
+        height: h,
+      });
     }
 
-    await saveGalleryImage({
-      uri: selectedImage,
-      category: galleryCategory,
-      width: w,
-      height: h,
-    });
-
-    setSelectedImage(null);
+    setSelectedImages([]);
     setGalleryCategory('#חתונה');
     setIsUploading(false);
     loadAllData();
@@ -610,17 +631,17 @@ export default function DashboardPage() {
                 <Text style={styles.label}>העלאת תמונות וחומרים לאירוע ({eventImages.length})</Text>
 
                 {/* Ref bound view wrapper to handle HTML5 native drag and drop events properly on web */}
-                <View ref={dropZoneRef} style={{ width: '100%' }}>
+                <View ref={eventDropRef} style={{ width: '100%' }}>
                   <Pressable
                     onPress={pickEventImages}
                     style={StyleSheet.flatten([
                       styles.dragDropZone,
-                      isDragging && styles.dragDropZoneActive
+                      isDraggingEvent && styles.dragDropZoneActive
                     ])}
                   >
-                    <Feather name="upload-cloud" size={32} color={isDragging ? '#3b82f6' : '#64748b'} style={{ marginBottom: 8 }} />
+                    <Feather name="upload-cloud" size={32} color={isDraggingEvent ? '#3b82f6' : '#64748b'} style={{ marginBottom: 8 }} />
                     <Text style={styles.dragDropText}>
-                      {isDragging ? 'שחרר את התמונות כאן!' : 'גרור תמונות לכאן או לחץ לבחירה'}
+                      {isDraggingEvent ? 'שחרר את התמונות כאן!' : 'גרור תמונות לכאן או לחץ לבחירה'}
                     </Text>
                   </Pressable>
                 </View>
@@ -665,20 +686,44 @@ export default function DashboardPage() {
         {activeTab === 'gallery' && (
           <View style={StyleSheet.flatten([styles.tabContent, isMobile && styles.mobileTabContent])}>
             <View style={styles.uploadSection}>
-              <Text style={styles.sectionTitle}>העלאת תמונה חדשה לגלריה הציבורית</Text>
+              <Text style={styles.sectionTitle}>העלאת תמונות חדשות לגלריה הציבורית ({selectedImages.length})</Text>
 
-              <TouchableOpacity style={styles.imagePicker} onPress={pickGalleryImage}>
-                {selectedImage ? (
-                  <Image source={{ uri: selectedImage }} style={styles.previewImage} resizeMode="contain" />
-                ) : (
-                  <View style={{ alignItems: 'center' }}>
-                    <Feather name="upload-cloud" size={40} color="#64748b" style={{ marginBottom: 12 }} />
-                    <Text style={styles.pickerText}>לחץ או גרור לבחירת קובץ תמונה</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
+              <View ref={galleryDropRef} style={{ width: '100%' }}>
+                <Pressable
+                  onPress={pickGalleryImages}
+                  style={StyleSheet.flatten([
+                    styles.dragDropZone,
+                    isDraggingGallery && styles.dragDropZoneActive
+                  ])}
+                >
+                  <Feather name="upload-cloud" size={32} color={isDraggingGallery ? '#3b82f6' : '#64748b'} style={{ marginBottom: 8 }} />
+                  <Text style={styles.dragDropText}>
+                    {isDraggingGallery ? 'שחרר את התמונות כאן!' : 'גרור כמה תמונות שרוצים לכאן או לחץ לבחירה'}
+                  </Text>
+                </Pressable>
+              </View>
 
-              <Text style={styles.label}>קטגוריית גלריה ציבורית (בחר או הוסף חדשה)</Text>
+              {selectedImages.length > 0 && (
+                <ScrollView
+                  style={styles.previewsContainer}
+                  contentContainerStyle={styles.previewsContentContainer}
+                  showsVerticalScrollIndicator={true}
+                >
+                  {selectedImages.map((img, idx) => (
+                    <View key={idx} style={styles.miniPreviewCard}>
+                      <Image source={{ uri: img.uri }} style={styles.miniPreviewImg} />
+                      <Pressable
+                        style={styles.miniPreviewDelete}
+                        onPress={() => setSelectedImages(prev => prev.filter((_, i) => i !== idx))}
+                      >
+                        <Feather name="x" size={10} color="#fff" />
+                      </Pressable>
+                    </View>
+                  ))}
+                </ScrollView>
+              )}
+
+              <Text style={styles.label}>קטגוריית גלריה ציבורית (בחר או הוסף חדשה) — חלה על כל התמונות שנבחרו</Text>
               <View style={{ position: 'relative', width: '100%', zIndex: 9999 }}>
                 <Pressable 
                   style={styles.dropdownTrigger}
@@ -742,11 +787,17 @@ export default function DashboardPage() {
               </View>
 
               <TouchableOpacity
-                style={[styles.uploadBtn, (!selectedImage || isUploading) && styles.uploadBtnDisabled]}
+                style={[styles.uploadBtn, (selectedImages.length === 0 || isUploading) && styles.uploadBtnDisabled]}
                 onPress={handleUploadGallery}
-                disabled={!selectedImage || isUploading}
+                disabled={selectedImages.length === 0 || isUploading}
               >
-                <Text style={styles.uploadBtnText}>{isUploading ? 'מעלה קובץ...' : 'העלה לגלריה הציבורית'}</Text>
+                <Text style={styles.uploadBtnText}>
+                  {isUploading
+                    ? 'מעלה קבצים...'
+                    : selectedImages.length > 1
+                      ? `העלה ${selectedImages.length} תמונות לגלריה הציבורית`
+                      : 'העלה לגלריה הציבורית'}
+                </Text>
               </TouchableOpacity>
             </View>
 
