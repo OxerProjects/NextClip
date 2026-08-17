@@ -81,7 +81,7 @@ const SERVICES_DATA: Record<string, {
     ogImage: '/stils/s1.jpeg',
     lowPrice: 1300,
     description: 'צלמים מנוסים המקפידים על תיעוד מקצועי של הרגעים החשובים ביותר, עם דגש על איכות, רגש ותשומת לב לכל פרט.',
-    features: ['ציוד צילום מתקדם', 'עריכה מקצועית לכל התמונות', 'מסירת גלריה דיגיטלית', 'זכויות שימוש מלאות', 'תיאום מראש עם הצוות', 'קבלת התמונות בדיסק-און-קי '],
+    features: ['ציוד צילום מתקדם ', 'עריכה מקצועית לכל התמונות', 'מסירת גלריה דיגיטלית', 'זכויות שימוש מלאות', 'תיאום מראש עם הצוות', 'קבלת התמונות בדיסק-און-קי '],
     galleryImages: ['/magnets/m1.jpeg', '/magnets/m2.jpeg', '/magnets/m3.jpeg', '/magnets/m4.jpeg', '/magnets/m5.jpeg', '/magnets/m6.jpeg', '/magnets/m7.jpeg', '/magnets/m8.jpeg', '/magnets/m9.jpeg'],
     galleryType: 'film', bookingSlug: 'stills',
   },
@@ -90,7 +90,7 @@ const SERVICES_DATA: Record<string, {
 const SERVICE_SLUG_MAP: Record<string, string> = { '1': 'magnets', '2': 'ai-booth', '3': 'stills' };
 
 /**
- * Prerender each service page at build time. Without this, /service/1..3 have no
+ * Prerender each service page at build time. Without this /service/1..3 have no
  * static HTML, so Vercel's catch-all rewrite serves index.html instead — meaning
  * crawlers and WhatsApp/Facebook scrapers would read the HOME page's meta tags
  * on every service URL.
