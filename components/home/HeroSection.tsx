@@ -107,7 +107,7 @@ export function HeroSection({ scrollY }: { scrollY?: SharedValue<number> }) {
 
     const translateY = isMobile
       ? interpolate(y, [0, 400], [220, 0], Extrapolate.CLAMP)
-      : 0;
+      : -150;
 
     return {
       transform: [{ translateY }],
