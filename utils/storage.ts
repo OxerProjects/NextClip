@@ -4,6 +4,12 @@ import { Platform } from 'react-native';
 export type GalleryImage = {
   id: string;
   uri: string;
+  /**
+   * High-resolution copy used by the gallery lightbox. `uri` stays small so the
+   * wall of thumbnails loads fast. Older images predate this field — the
+   * lightbox falls back to `uri` for them.
+   */
+  fullUri?: string;
   category: string;
   width: number;
   height: number;
@@ -27,6 +33,15 @@ const EVENTS_STORAGE_KEY = '@nextclip_client_events';
 const IMG_WIDTH = 300;
 const GAP = 12;
 const NUM_COLS = 8;
+
+// Gallery derivatives: a light one for the tiled wall, a big one for the
+// lightbox. Both are encoded once, straight from the original file — going
+// through the uploader's own compressor as well used to re-encode an already
+// lossy JPEG, which is what made opened photos look mushy.
+const GRID_MAX_DIM  = 700;
+const GRID_QUALITY  = 0.82;
+const FULL_MAX_DIM  = 2000;
+const FULL_QUALITY  = 0.88;
 
 export const GRID_TOTAL_WIDTH = NUM_COLS * (IMG_WIDTH + GAP) - GAP;
 
@@ -111,12 +126,21 @@ export const getGalleryImages = async (): Promise<GalleryImage[]> => {
 export const saveGalleryImage = async (image: Omit<GalleryImage, 'id' | 'col' | 'row_y'>) => {
   try {
     const images = await getGalleryImages();
-    
-    let uri = image.uri;
+
+    const stamp = Date.now();
+    let uploadedUri: string;
+    let uploadedFullUri: string | undefined;
+
     if (Platform.OS === 'web') {
-      uri = await compressImageWeb(uri, 600, 0.75); // Gallery images are smaller, max 600px is perfect!
+      // Two encodes from the same original — never one from the other.
+      const gridUri = await compressImageWeb(image.uri, GRID_MAX_DIM, GRID_QUALITY);
+      const fullUri = await compressImageWeb(image.uri, FULL_MAX_DIM, FULL_QUALITY);
+      uploadedUri     = await uploadImageToVercelBlob(gridUri, `gallery_${stamp}.jpg`, true);
+      uploadedFullUri = await uploadImageToVercelBlob(fullUri, `gallery_${stamp}_full.jpg`, true);
+      if (uploadedFullUri === uploadedUri) uploadedFullUri = undefined;
+    } else {
+      uploadedUri = await uploadImageToVercelBlob(image.uri, `gallery_${stamp}.jpg`);
     }
-    const uploadedUri = await uploadImageToVercelBlob(uri, `gallery_${Date.now()}.jpg`);
 
     const colHeights = new Array(NUM_COLS).fill(0);
     images.forEach(img => {
@@ -132,7 +156,8 @@ export const saveGalleryImage = async (image: Omit<GalleryImage, 'id' | 'col' | 
     const newImage: GalleryImage = {
       ...image,
       uri: uploadedUri,
-      id: Date.now().toString(),
+      ...(uploadedFullUri ? { fullUri: uploadedFullUri } : {}),
+      id: stamp.toString(),
       col: minCol,
       row_y: colHeights[minCol],
     };
@@ -186,7 +211,12 @@ const fetchWithFallback = async (action: string, bodyData?: any) => {
   return null;
 };
 
-const uploadImageToVercelBlob = async (uri: string, filename: string): Promise<string> => {
+const uploadImageToVercelBlob = async (
+  uri: string,
+  filename: string,
+  /** Caller already encoded the exact bytes it wants — don't re-encode them. */
+  alreadyCompressed = false,
+): Promise<string> => {
   try {
     // 1. If it's already uploaded to the cloud CDN, keep it
     if (uri.startsWith('http') && !uri.startsWith('data:') && !uri.includes('localhost')) {
@@ -195,7 +225,7 @@ const uploadImageToVercelBlob = async (uri: string, filename: string): Promise<s
 
     // 2. Compress the image to small base64 string on Web to prevent payload size limits and expired blobs!
     let activeUri = uri;
-    if (Platform.OS === 'web') {
+    if (Platform.OS === 'web' && !alreadyCompressed) {
       activeUri = await compressImageWeb(uri);
     }
 
