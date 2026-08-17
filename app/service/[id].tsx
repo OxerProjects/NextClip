@@ -993,10 +993,10 @@ const styles = StyleSheet.create({
   chipCheck: { color: '#3b82f6', fontSize: 14, fontWeight: 'bold' },
   chipText: { color: '#e2e8f0', fontSize: 14, fontFamily: 'Assistant_400Regular', textAlign: 'right' },
   imgCol: { flex: 1 },
-  imgColMobile: { width: '100%' },
+  imgColMobile: { width: '100%', flex: 0 },
   img: {
     width: '100%', height: 360, borderRadius: 18,
     ...Platform.select({ web: { boxShadow: '0 8px 40px rgba(0,0,0,0.6)' } as any }),
   },
-  imgMobile: { height: 220, borderRadius: 14 },
+  imgMobile: { height: undefined, aspectRatio: 4 / 3, borderRadius: 14 },
 });

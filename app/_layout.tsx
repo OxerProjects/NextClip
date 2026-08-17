@@ -88,13 +88,15 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
   }
 
   // ── Favicon ─────────────────────────────────────────────────────────────────
-  if (!document.querySelector('link[rel="icon"]')) {
-    const link = document.createElement('link');
-    link.rel = 'icon';
-    link.type = 'image/svg+xml';
-    link.href = '/icon.svg';
-    document.head.appendChild(link);
+  // Override any existing favicon (e.g. the one Expo injects from app.json)
+  let faviconLink = document.querySelector('link[rel="icon"]') as HTMLLinkElement | null;
+  if (!faviconLink) {
+    faviconLink = document.createElement('link');
+    document.head.appendChild(faviconLink);
   }
+  faviconLink.rel = 'icon';
+  faviconLink.type = 'image/svg+xml';
+  faviconLink.href = '/icon.svg';
 
   // ── Loading overlay ──────────────────────────────────────────────────────────
   const injectLoader = () => {
