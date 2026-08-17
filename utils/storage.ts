@@ -176,12 +176,16 @@ const generateMockImages = (): GalleryImage[] => {
 // --- CLOUD API DATABASE CONFIG & UTILS ---
 
 const getApiUrl = () => {
-  // Always use the local Expo API route by default, it handles local JSON.
+  // /api/nextclip-db is backed by @vercel/blob (api/nextclip-db.js) — real
+  // shared cloud storage every device reads/writes the same data from.
+  // (There's a second route, /api/db, that looks similar but only writes to
+  // the serverless function's local disk — that disk isn't shared across
+  // instances or requests on Vercel, so devices would see different data.)
   if (typeof window !== 'undefined') {
-    return `${window.location.origin}/api/db`;
+    return `${window.location.origin}/api/nextclip-db`;
   }
   // Fallback for native/SSR if needed (assuming local dev server)
-  return 'http://localhost:8081/api/db';
+  return 'http://localhost:8081/api/nextclip-db';
 };
 
 const shouldCallApi = () => {

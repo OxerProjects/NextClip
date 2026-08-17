@@ -73,9 +73,49 @@ module.exports = async function handler(req, res) {
         });
         return res.status(200).json({ success: true, url: blob.url });
       }
+
+      // 4. Action: Save Contact Leads Array (JSON Database)
+      if (action === 'save_leads' && data) {
+        try {
+          const { blobs } = await list({ prefix: 'database/leads.json', token });
+          for (const oldBlob of blobs) {
+            await del(oldBlob.url, { token });
+          }
+        } catch (e) {
+          console.log('No existing leads db file to clean up');
+        }
+
+        const blob = await put('database/leads.json', JSON.stringify(data), {
+          access: 'public',
+          contentType: 'application/json',
+          addRandomSuffix: false,
+          token,
+        });
+        return res.status(200).json({ success: true, url: blob.url });
+      }
+
+      // 5. Action: Save Bookings Array (JSON Database)
+      if (action === 'save_bookings' && data) {
+        try {
+          const { blobs } = await list({ prefix: 'database/bookings.json', token });
+          for (const oldBlob of blobs) {
+            await del(oldBlob.url, { token });
+          }
+        } catch (e) {
+          console.log('No existing bookings db file to clean up');
+        }
+
+        const blob = await put('database/bookings.json', JSON.stringify(data), {
+          access: 'public',
+          contentType: 'application/json',
+          addRandomSuffix: false,
+          token,
+        });
+        return res.status(200).json({ success: true, url: blob.url });
+      }
     }
 
-    // 4. Action: Get Public Gallery Database
+    // 6. Action: Get Public Gallery Database
     if (action === 'get_gallery') {
       try {
         const { blobs } = await list({ prefix: 'database/gallery.json', token });
@@ -91,7 +131,7 @@ module.exports = async function handler(req, res) {
       return res.status(200).json([]);
     }
 
-    // 5. Action: Get Events Array (JSON Database)
+    // 7. Action: Get Events Array (JSON Database)
     if (action === 'get_events' || req.method === 'GET') {
       try {
         const { blobs } = await list({ prefix: 'database/events.json', token });
@@ -104,6 +144,38 @@ module.exports = async function handler(req, res) {
         }
       } catch (err) {
         console.error('Failed to read database file, returning empty array', err);
+      }
+      return res.status(200).json([]);
+    }
+
+    // 8. Action: Get Contact Leads Array (JSON Database)
+    if (action === 'get_leads') {
+      try {
+        const { blobs } = await list({ prefix: 'database/leads.json', token });
+        if (blobs.length > 0) {
+          const dbUrl = blobs[0].url;
+          const response = await fetch(`${dbUrl}?t=${Date.now()}`);
+          const leads = await response.json();
+          return res.status(200).json(leads);
+        }
+      } catch (err) {
+        console.error('Failed to read leads database file', err);
+      }
+      return res.status(200).json([]);
+    }
+
+    // 9. Action: Get Bookings Array (JSON Database)
+    if (action === 'get_bookings') {
+      try {
+        const { blobs } = await list({ prefix: 'database/bookings.json', token });
+        if (blobs.length > 0) {
+          const dbUrl = blobs[0].url;
+          const response = await fetch(`${dbUrl}?t=${Date.now()}`);
+          const bookings = await response.json();
+          return res.status(200).json(bookings);
+        }
+      } catch (err) {
+        console.error('Failed to read bookings database file', err);
       }
       return res.status(200).json([]);
     }
