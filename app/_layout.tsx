@@ -22,6 +22,42 @@ const FONT_FALLBACK = AppFontFamily;
 // system face, which is why the phone looked like it was ignoring the font.
 // The default is set in CSS below instead.
 
+/**
+ * Gives every <Text>/<TextInput> the app font by default.
+ *
+ * react-native-web ships a base class for each of those components carrying
+ * its own font stack (-apple-system, Segoe UI, Roboto...), which outranks any
+ * wildcard CSS rule. React 19 removed defaultProps for function components, so
+ * the usual Text.defaultProps trick is gone too. Rewriting the declaration
+ * inside react-native-web's own stylesheet keeps the cascade exactly as it was
+ * — components that ask for a specific face (icon fonts, Assistant_700Bold)
+ * still win, because their atomic .r-* rules are untouched.
+ *
+ * Matching is by value rather than class name on purpose: production builds
+ * minify .css-text-146c3p1 down to .css-146c3p1, so a name-based selector
+ * would quietly stop working outside dev.
+ */
+const applyDefaultFontToBaseStyles = (): boolean => {
+  if (Platform.OS !== 'web' || typeof document === 'undefined') return true;
+  const node = document.getElementById('react-native-stylesheet') as HTMLStyleElement | null;
+  const sheet = node?.sheet;
+  if (!sheet) return false;
+  let patched = 0;
+  try {
+    for (const rule of Array.from(sheet.cssRules) as CSSStyleRule[]) {
+      // .css-* are the base component styles; .r-* are per-component atomic
+      // styles and must keep whatever the component asked for.
+      if (!rule.style || !rule.selectorText?.startsWith('.css-')) continue;
+      if (!rule.style.fontFamily.includes('-apple-system')) continue;
+      rule.style.fontFamily = FONT_FALLBACK;
+      patched++;
+    }
+  } catch {
+    return false; // only cross-origin sheets throw, and this one is ours
+  }
+  return patched > 0;
+};
+
 const LOADER_MIN_MS = 2000;
 
 // Web setup: global CSS + Google Font preload + favicon + loading overlay
@@ -64,16 +100,6 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
         -moz-osx-font-smoothing: grayscale;
       }
 
-      /* The real default for React Native text.
-         react-native-web gives every <Text>/<TextInput> a base class carrying
-         its own font stack, which outranks the wildcard rule above. This
-         matches that base class but skips any element that carries an atomic
-         r-fontFamily-* class, so components that ask for a specific face
-         (Assistant_700Bold and friends) keep it. */
-      [class*="css-text-"]:not([class*="r-fontFamily"]),
-      [class*="css-textinput-"]:not([class*="r-fontFamily"]) {
-        font-family: ${JSON.stringify(FONT_FALLBACK)};
-      }
 
       @keyframes nc-spin {
         from { transform: rotate(0deg); }
@@ -165,6 +191,17 @@ export default function RootLayout() {
     Assistant_600SemiBold,
     Assistant_700Bold,
   });
+
+  // The stylesheet may not exist yet at module-eval time, so keep trying for a
+  // few frames after mount.
+  useEffect(() => {
+    if (applyDefaultFontToBaseStyles()) return;
+    let tries = 0;
+    const id = setInterval(() => {
+      if (applyDefaultFontToBaseStyles() || ++tries > 20) clearInterval(id);
+    }, 50);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     if (!fontsLoaded) return;
