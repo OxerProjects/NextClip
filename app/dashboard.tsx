@@ -249,9 +249,17 @@ export default function DashboardPage() {
       ? window.confirm('האם אתה בטוח שברצונך למחוק אירוע זה?')
       : true; // Bypass RN prompt for simple web testing
 
-    if (confirmDelete) {
-      await deleteClientEvent(id);
-      loadAllData();
+    if (!confirmDelete) return;
+
+    const previous = clientEvents;
+    setClientEvents(previous.filter(e => e.id !== id));
+
+    const updated = await deleteClientEvent(id, previous);
+    if (updated) {
+      setClientEvents(updated);
+    } else {
+      setClientEvents(previous);
+      alert('מחיקת הדף נכשלה — הדף הוחזר לרשימה. בדוק את החיבור ונסה שוב.');
     }
   };
 
@@ -259,10 +267,20 @@ export default function DashboardPage() {
     const confirmDelete = Platform.OS === 'web'
       ? window.confirm('האם אתה בטוח שברצונך למחוק תמונה זו מהגלריה הציבורית?')
       : true;
+    if (!confirmDelete) return;
 
-    if (confirmDelete) {
-      const updated = await deleteGalleryImage(id);
+    // The row disappears now; the server write happens behind it. Waiting for
+    // two round trips before touching the list is what made deleting feel
+    // broken.
+    const previous = galleryImages;
+    setGalleryImages(previous.filter(img => img.id !== id));
+
+    const updated = await deleteGalleryImage(id, previous);
+    if (updated) {
       setGalleryImages(updated);
+    } else {
+      setGalleryImages(previous);
+      alert('מחיקת התמונה נכשלה — התמונה הוחזרה לרשימה. בדוק את החיבור ונסה שוב.');
     }
   };
 

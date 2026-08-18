@@ -193,6 +193,22 @@ export const getGalleryImages = async (): Promise<GalleryImage[]> => {
 const UPLOAD_CONCURRENCY = 3;
 
 /**
+ * Serializes database writes.
+ *
+ * Every mutation rewrites the whole JSON document, so two of them in flight at
+ * once means last-writer-wins: delete two photos quickly and the second write,
+ * built from a copy read before the first one landed, brings the first photo
+ * back. Chaining the writes keeps each one working from the previous result.
+ */
+const writeChains: Record<string, Promise<unknown>> = {};
+const queueWrite = <T,>(key: string, fn: () => Promise<T>): Promise<T> => {
+  const prev = writeChains[key] || Promise.resolve();
+  const next = prev.then(fn, fn);
+  writeChains[key] = next.catch(() => undefined);
+  return next;
+};
+
+/**
  * What an upload is doing right now, for the progress bar.
  *
  * `ratio` is 0..1 across the whole job and is driven by **bytes actually sent**
@@ -388,7 +404,7 @@ export const saveGalleryImages = async (
     images.push(...added);
 
     // One database write for the whole batch instead of one per photo.
-    await fetchWithFallback('save_gallery', { data: images });
+    await queueWrite('gallery', () => fetchWithFallback('save_gallery', { data: images }));
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(images));
 
     const saveMs = Date.now() - saveStart;
@@ -677,24 +693,43 @@ export const saveClientEvent = async (
   }
 };
 
-export const deleteClientEvent = async (eventId: string) => {
+/** Same shape as deleteGalleryImage: no read when the caller has the list,
+ *  queued write, and null on failure rather than a silent no-op. */
+export const deleteClientEvent = async (
+  eventId: string,
+  knownEvents?: ClientEvent[],
+): Promise<ClientEvent[] | null> => {
   try {
-    const events = await getClientEvents();
+    const events = knownEvents ?? await getClientEvents();
     const filtered = events.filter(e => e.id !== eventId);
 
-    // Save update to Vercel serverless database if active
-    await fetchWithFallback('save_events', { data: filtered });
-
-    // Back up locally
     await AsyncStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(filtered));
+    const res = await queueWrite('events', () => fetchWithFallback('save_events', { data: filtered }));
+    if (!res) {
+      await AsyncStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(events));
+      return null;
+    }
+    return filtered;
   } catch (error) {
     console.error('Failed to delete client event', error);
+    return null;
   }
 };
 
-export const deleteGalleryImage = async (imageId: string): Promise<GalleryImage[]> => {
+/**
+ * Removes one photo and persists the result.
+ *
+ * Pass `knownImages` when the caller already has the list on screen — that
+ * skips a full read of the gallery document, which was half the wait before the
+ * row disappeared. Returns null (never an empty array) when the write fails, so
+ * a failed delete cannot be mistaken for "the gallery is now empty".
+ */
+export const deleteGalleryImage = async (
+  imageId: string,
+  knownImages?: GalleryImage[],
+): Promise<GalleryImage[] | null> => {
   try {
-    const images = await getGalleryImages();
+    const images = knownImages ?? await getGalleryImages();
     const filtered = images.filter(img => img.id !== imageId);
 
     // Recalculate columns heights for remaining images to keep masonry layout balanced
@@ -713,15 +748,19 @@ export const deleteGalleryImage = async (imageId: string): Promise<GalleryImage[
       };
     });
 
-    // Write to server
-    await fetchWithFallback('save_gallery', { data: updated });
-
-    // Back up locally
+    // Local cache first so a refresh right after the click cannot bring the
+    // photo back, then the server write, queued behind any other write.
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    const res = await queueWrite('gallery', () => fetchWithFallback('save_gallery', { data: updated }));
+    if (!res) {
+      // Server refused it — put the cache back the way it was.
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(images));
+      return null;
+    }
     return updated;
   } catch (error) {
     console.error('Failed to delete gallery image', error);
-    return [];
+    return null;
   }
 };
 
