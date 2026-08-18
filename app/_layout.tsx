@@ -1,34 +1,26 @@
-import { Colors } from '@/constants/theme';
+import { AppFontFamily, Colors } from '@/constants/theme';
 import { Assistant_400Regular, Assistant_600SemiBold, Assistant_700Bold } from '@expo-google-fonts/assistant';
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { I18nManager, Platform, Text, TextInput } from 'react-native';
+import { I18nManager, Platform } from 'react-native';
 import 'react-native-reanimated';
 
-// Web-only fallback chain: if the bundled Assistant_400Regular webfont ever
-// fails to load or gets evicted (a known iOS Safari memory-pressure quirk),
-// text falls back to the CDN 'Assistant' family instead of jumping
-// straight to the browser's ugly system default. react-native-web passes
-// fontFamily straight through to CSS, so a comma list works on web only —
-// native platforms only ever read the first token.
-const FONT_FALLBACK = Platform.OS === 'web'
-  ? 'Assistant_400Regular, Assistant, "Noto Sans Hebrew", system-ui, sans-serif'
-  : 'Assistant_400Regular';
+// The shared stack from constants/theme — kept under the old name because the
+// CSS below reads it. react-native-web passes fontFamily straight through to
+// CSS, so the comma list works on web; native reads only the first token.
+const FONT_FALLBACK = AppFontFamily;
 
-interface TextWithDefaultProps extends Text {
-  defaultProps?: { style?: any };
-}
-(Text as unknown as TextWithDefaultProps).defaultProps = (Text as unknown as TextWithDefaultProps).defaultProps || {};
-(Text as unknown as TextWithDefaultProps).defaultProps!.style = { fontFamily: FONT_FALLBACK };
-
-interface TextInputWithDefaultProps extends TextInput {
-  defaultProps?: { style?: any };
-}
-(TextInput as unknown as TextInputWithDefaultProps).defaultProps = (TextInput as unknown as TextInputWithDefaultProps).defaultProps || {};
-(TextInput as unknown as TextInputWithDefaultProps).defaultProps!.style = { fontFamily: FONT_FALLBACK };
+// NOTE: setting Text.defaultProps / TextInput.defaultProps used to be the way
+// to give every label a default font. React 19 removed defaultProps support for
+// function components, and react-native-web's Text is one — so that approach is
+// silently ignored now and every Text without an explicit fontFamily fell back
+// to react-native-web's own built-in stack (-apple-system, Segoe UI, Roboto...).
+// On Windows that lands on Segoe UI and looks fine; on iOS it lands on the
+// system face, which is why the phone looked like it was ignoring the font.
+// The default is set in CSS below instead.
 
 const LOADER_MIN_MS = 2000;
 
@@ -66,11 +58,21 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
         -webkit-text-size-adjust: 100%;
         text-size-adjust: 100%;
       }
-      /* Force Assistant on every element so iOS never shows system font */
       html, body, * {
-        font-family: 'Assistant', system-ui, -apple-system, sans-serif;
+        font-family: ${JSON.stringify(FONT_FALLBACK)};
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+      }
+
+      /* The real default for React Native text.
+         react-native-web gives every <Text>/<TextInput> a base class carrying
+         its own font stack, which outranks the wildcard rule above. This
+         matches that base class but skips any element that carries an atomic
+         r-fontFamily-* class, so components that ask for a specific face
+         (Assistant_700Bold and friends) keep it. */
+      [class*="css-text-"]:not([class*="r-fontFamily"]),
+      [class*="css-textinput-"]:not([class*="r-fontFamily"]) {
+        font-family: ${JSON.stringify(FONT_FALLBACK)};
       }
 
       @keyframes nc-spin {

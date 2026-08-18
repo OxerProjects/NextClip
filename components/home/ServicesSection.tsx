@@ -1,4 +1,4 @@
-import { Colors } from '@/constants/theme';
+import { AppFontFamily, Colors } from '@/constants/theme';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Image, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
     marginBottom: 80,
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
     textShadowColor: 'rgba(0, 86, 219, 0.4)',
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 15,
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: 'bold',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   cardContent: {
     padding: 32,
@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#94a3b8',
     marginBottom: 2,
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   priceTextRow: {
     flexDirection: 'row-reverse',
@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: 'bold',
     color: '#fff',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   prominentPriceValue: {
     color: '#3b82f6',
@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#94a3b8',
     fontWeight: '500',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   // Button Styles
   ctaButton: {
@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
   ctaButtonText: {
     fontSize: 15,
     fontWeight: 'bold',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   prominentCtaButtonText: {
     color: '#fff',

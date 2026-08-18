@@ -61,7 +61,7 @@ export default function Root({ children }: PropsWithChildren) {
             margin: 0;
             padding: 0;
             background-color: #0F172A;
-            font-family: "Google Sans", "Noto Sans Hebrew", system-ui, -apple-system, sans-serif;
+            font-family: Assistant, "Noto Sans Hebrew", system-ui, -apple-system, sans-serif;
             color: #FFFFFF;
             -webkit-text-size-adjust: 100%;
             text-size-adjust: 100%;

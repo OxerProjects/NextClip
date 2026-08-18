@@ -1,7 +1,7 @@
 import { Footer } from '@/components/Footer';
 import { ContactSection } from '@/components/home/ContactSection';
 import { Seo } from '@/components/Seo';
-import { Colors } from '@/constants/theme';
+import { AppFontFamily, Colors } from '@/constants/theme';
 import React from 'react';
 import { Image, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'right',
     marginBottom: 40,
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   mobileMainTitle: {
     textAlign: 'right',
@@ -175,14 +175,14 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     lineHeight: 34,
     marginBottom: 10,
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   descriptionText: {
     fontSize: 18,
     color: '#cbd5e1',
     lineHeight: 28,
     textAlign: 'right',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   mobileTextAlign: {
     textAlign: 'right',

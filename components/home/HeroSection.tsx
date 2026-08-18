@@ -1,4 +1,4 @@
-import { Colors } from '@/constants/theme';
+import { AppFontFamily, Colors } from '@/constants/theme';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import React, { useEffect } from 'react';
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 96,
     fontWeight: '900' as const,
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
     color: Colors.dark.text,
     textAlign: 'right',
     lineHeight: 96,
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 20,
     fontWeight: '600',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   mobileFeatureText: {
     fontSize: 15,
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
     fontSize: 34,
     fontWeight: '900',
     color: '#ffffff', // Glowing brand light blue highlight
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
     textAlign: 'right',
   },
   mobileFeaturesHeader: {
@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: '900',
     color: '#ffffff', // Glowing brand light blue highlight
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
     textAlign: 'center',
   },
 });

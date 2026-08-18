@@ -5,6 +5,19 @@
 
 import { Platform } from 'react-native';
 
+/**
+ * The app's font stack, in one place.
+ *
+ * Only families that are actually shipped belong here: 'Assistant' comes from
+ * the Google Fonts stylesheet (real 400/600/700 weights), Assistant_400Regular
+ * is the copy bundled through expo-font in case the CDN is unreachable, and
+ * Noto Sans Hebrew is a last resort that still has Hebrew glyphs. Native only
+ * ever reads the first token, so it gets the bundled name.
+ */
+export const AppFontFamily = Platform.OS === 'web'
+  ? 'Assistant, Assistant_400Regular, "Noto Sans Hebrew", system-ui, sans-serif'
+  : 'Assistant_400Regular';
+
 const primaryColor = '#0056DB';
 const backgroundColor = '#0F172A'; // Deep Navy
 const textColor = '#FFFFFF';

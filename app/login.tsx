@@ -1,5 +1,5 @@
 import { Seo } from '@/components/Seo';
-import { Colors } from '@/constants/theme';
+import { AppFontFamily, Colors } from '@/constants/theme';
 import { getClientEvents } from '@/utils/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     marginBottom: 12,
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
     textAlign: 'center',
   },
   subtitle: {
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     textAlign: 'center',
     lineHeight: 22,
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
     marginBottom: 32,
   },
   inputContainer: {
@@ -220,13 +220,13 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     textAlign: 'center',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   errorText: {
     color: '#ef4444',
     fontSize: 13,
     fontWeight: '600',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
     marginBottom: 20,
     textAlign: 'center',
   },
@@ -254,13 +254,13 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   hint: {
     fontSize: 12,
     color: '#64748b',
     textAlign: 'center',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   bold: {
     color: '#3b82f6',

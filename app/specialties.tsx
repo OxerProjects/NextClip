@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, useWindowDimensions, Platform, Pressable } from 'react-native';
-import { Colors } from '@/constants/theme';
+import { AppFontFamily, Colors } from '@/constants/theme';
 import { Link } from 'expo-router';
 import { ContactSection } from '@/components/home/ContactSection';
 import { Footer } from '@/components/Footer';
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
     marginBottom: 16,
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
     textShadowColor: 'rgba(0, 86, 219, 0.3)',
     textShadowOffset: { width: 0, height: 4 },
     textShadowRadius: 12,
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#94a3b8',
     textAlign: 'center',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
     maxWidth: 600,
     lineHeight: 28,
   },
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
     fontSize: 64,
     fontWeight: '900',
     color: 'rgba(0, 86, 219, 0.15)',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
     marginBottom: -20,
     lineHeight: 64,
   },
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginBottom: 12,
     textAlign: 'right',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   mobileSectionTitle: {
     fontSize: 26,
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
     color: '#3b82f6',
     marginBottom: 20,
     textAlign: 'right',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   mobileSectionSubtitle: {
     fontSize: 16,
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     color: '#cbd5e1',
     lineHeight: 28,
     textAlign: 'right',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
     marginBottom: 32,
   },
   mobileSectionText: {
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   contactWrapper: {
     borderTopWidth: 1,

@@ -1,5 +1,5 @@
 import { Seo } from '@/components/Seo';
-import { Colors } from '@/constants/theme';
+import { AppFontFamily, Colors } from '@/constants/theme';
 import { ClientEvent, getClientEvents } from '@/utils/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather } from '@expo/vector-icons';
@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
     color: '#cbd5e1',
     fontSize: 16,
     marginTop: 16,
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   errorContainer: {
     flex: 1,
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     marginBottom: 12,
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
     textAlign: 'center',
   },
   errorText: {
@@ -481,7 +481,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     maxWidth: 500,
     marginBottom: 32,
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   backBtn: {
     backgroundColor: '#0056DB',
@@ -554,7 +554,7 @@ const styles = StyleSheet.create({
     color: '#ef4444',
     fontSize: 13,
     fontWeight: 'bold',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   eventLabel: {
     fontSize: 14,
@@ -562,7 +562,7 @@ const styles = StyleSheet.create({
     color: '#3b82f6',
     letterSpacing: 1,
     marginBottom: 8,
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
     textTransform: 'uppercase',
     marginTop: 20,
   },
@@ -572,7 +572,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
     marginBottom: 20,
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   mobileEventName: {
     fontSize: 30,
@@ -602,7 +602,7 @@ const styles = StyleSheet.create({
   metaBadgeText: {
     color: '#cbd5e1',
     fontSize: 13,
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   warningBadge: {
     backgroundColor: 'rgba(239, 68, 68, 0.08)',
@@ -642,7 +642,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: 'bold',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   selectModeBtn: {
     flexDirection: 'row-reverse',
@@ -658,7 +658,7 @@ const styles = StyleSheet.create({
     color: '#cbd5e1',
     fontSize: 14,
     fontWeight: 'bold',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   downloadSelectedBtn: {
     flexDirection: 'row-reverse',
@@ -707,7 +707,7 @@ const styles = StyleSheet.create({
     color: '#64748b',
     fontSize: 14,
     textAlign: 'center',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   imageGrid: {
     flexDirection: 'row-reverse',
@@ -803,7 +803,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     fontWeight: '500',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   lightboxTopBar: {
     flexDirection: 'row-reverse',
@@ -824,7 +824,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: 'bold',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   lightboxCloseBtn: {
     padding: 8,
@@ -861,6 +861,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     fontWeight: 'bold',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
 });

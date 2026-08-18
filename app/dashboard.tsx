@@ -1,5 +1,5 @@
 import { Seo } from '@/components/Seo';
-import { Colors } from '@/constants/theme';
+import { AppFontFamily, Colors } from '@/constants/theme';
 import { ClientEvent, deleteClientEvent, deleteGalleryImage, GalleryImage, getClientEvents, getGalleryImages, saveClientEvent, saveGalleryImages, getLeads, getBookings, ContactLead, BookingLead, saveBooking, UploadProgress } from '@/utils/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather } from '@expo/vector-icons';
@@ -1120,7 +1120,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#fff',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   mobileTitle: {
     fontSize: 16,
@@ -1147,7 +1147,7 @@ const styles = StyleSheet.create({
     color: '#cbd5e1',
     fontSize: 14,
     fontWeight: 'bold',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   logo: {
     width: 100,
@@ -1194,7 +1194,7 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     fontSize: 14,
     fontWeight: '600',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   mobileTabBtnText: {
     fontSize: 12,
@@ -1240,7 +1240,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     color: '#fff',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
     textAlign: 'right',
   },
   sectionSubtitle: {
@@ -1356,7 +1356,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
   },
   mobileCardActions: {
     flexDirection: 'row',
@@ -1475,7 +1475,7 @@ const styles = StyleSheet.create({
     color: '#cbd5e1',
     fontSize: 14,
     fontWeight: '600',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
     textAlign: 'center',
   },
   dragDropSubtext: {
@@ -1995,7 +1995,7 @@ const styles = StyleSheet.create({
     color: '#f87171',
     fontSize: 13,
     textAlign: 'right',
-    fontFamily: 'Google Sans, sans-serif',
+    fontFamily: AppFontFamily,
     lineHeight: 18,
     flex: 1,
   }
