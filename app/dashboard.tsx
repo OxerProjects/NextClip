@@ -1,6 +1,6 @@
 import { Seo } from '@/components/Seo';
 import { Colors } from '@/constants/theme';
-import { ClientEvent, deleteClientEvent, deleteGalleryImage, GalleryImage, getClientEvents, getGalleryImages, saveClientEvent, saveGalleryImage, getLeads, getBookings, ContactLead, BookingLead, saveBooking } from '@/utils/storage';
+import { ClientEvent, deleteClientEvent, deleteGalleryImage, GalleryImage, getClientEvents, getGalleryImages, saveClientEvent, saveGalleryImages, getLeads, getBookings, ContactLead, BookingLead, saveBooking, UploadProgress } from '@/utils/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -64,6 +64,52 @@ function useFileDropZone(enabled: boolean, onFiles: (files: File[]) => void) {
   return { ref, isDragging };
 }
 
+const fmtSec = (ms: number) => (ms / 1000).toFixed(ms < 10000 ? 1 : 0) + 'ש׳';
+const fmtMB = (bytes: number) => (bytes / (1024 * 1024)).toFixed(1) + 'MB';
+
+const PHASE_LABEL: Record<UploadProgress['phase'], string> = {
+  preparing: 'מכין תמונות',
+  uploading: 'מעלה',
+  saving: 'שומר',
+  done: 'הושלם',
+};
+
+/**
+ * Real upload progress: the fill tracks bytes that actually left the browser,
+ * and the line underneath says which stage is slow — preparing (this computer)
+ * or uploading (the connection).
+ */
+function UploadProgressBar({ progress }: { progress: UploadProgress }) {
+  const pct = Math.round(Math.min(Math.max(progress.ratio, 0), 1) * 100);
+  const isDone = progress.phase === 'done';
+  const t = progress.timings;
+  const detail = isDone
+    ? (t
+        ? `הכנה ${fmtSec(t.prepareMs)} · העלאה ${fmtSec(t.uploadMs)} · שמירה ${fmtSec(t.saveMs)} · ${fmtMB(t.bytes)}`
+        : 'הושלם')
+    : progress.phase === 'uploading'
+      ? `${fmtMB(progress.sentBytes)} מתוך ${fmtMB(progress.totalBytes)}${progress.etaMs !== null ? ` · נותרו כ-${fmtSec(progress.etaMs)}` : ''}`
+      : `${progress.done}/${progress.total}`;
+
+  return (
+    <View style={styles.progressWrap}>
+      <View style={styles.progressHeader}>
+        <Text style={styles.progressPct}>{pct}%</Text>
+        <Text style={styles.progressPhase}>
+          {PHASE_LABEL[progress.phase]}
+          {progress.phase !== 'done' && progress.total > 1 ? ` ${progress.done}/${progress.total}` : ''}
+        </Text>
+      </View>
+      <View style={styles.progressTrack}>
+        <View style={[styles.progressFill, { width: `${pct}%` }, isDone && styles.progressFillDone]} />
+      </View>
+      <Text style={styles.progressDetail}>
+        {detail}{!isDone ? ` · ${fmtSec(progress.elapsedMs)}` : ''}
+      </Text>
+    </View>
+  );
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -92,6 +138,9 @@ export default function DashboardPage() {
   const [categoriesList, setCategoriesList] = useState(['#חתונה', '#בר מצווה', '#בת מצווה', '#אירוע חברה']);
   const [newCategoryText, setNewCategoryText] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+  const [eventProgress, setEventProgress] = useState<UploadProgress | null>(null);
+  const [isSavingEvent, setIsSavingEvent] = useState(false);
 
   // --- CALENDAR STATES ---
   const [calendarDate, setCalendarDate] = useState(() => new Date());
@@ -267,6 +316,12 @@ export default function DashboardPage() {
       return;
     }
 
+    setIsSavingEvent(true);
+    setEventProgress({
+      phase: 'preparing', done: 0, total: eventImages.length, ratio: 0,
+      sentBytes: 0, totalBytes: 0, elapsedMs: 0, etaMs: null,
+    });
+
     await saveClientEvent({
       id: editingEventId || undefined,
       name: eventName,
@@ -274,8 +329,10 @@ export default function DashboardPage() {
       date: eventDate,
       duration: eventDuration,
       images: eventImages,
-    });
+    }, setEventProgress);
 
+    setIsSavingEvent(false);
+    setEventProgress(null);
     setShowEventForm(false);
     loadAllData();
   };
@@ -316,9 +373,13 @@ export default function DashboardPage() {
   const handleUploadGallery = async () => {
     if (selectedImages.length === 0) return;
     setIsUploading(true);
+    setUploadProgress({
+      phase: 'preparing', done: 0, total: selectedImages.length, ratio: 0,
+      sentBytes: 0, totalBytes: 0, elapsedMs: 0, etaMs: null,
+    });
 
     const MAX_DIM = 600;
-    for (const img of selectedImages) {
+    const payload = selectedImages.map(img => {
       let w = img.width || 400;
       let h = img.height || 400;
       if (w > MAX_DIM || h > MAX_DIM) {
@@ -330,18 +391,19 @@ export default function DashboardPage() {
           h = MAX_DIM;
         }
       }
+      return { uri: img.uri, category: galleryCategory, width: w, height: h };
+    });
 
-      await saveGalleryImage({
-        uri: img.uri,
-        category: galleryCategory,
-        width: w,
-        height: h,
-      });
-    }
+    // One batch: the gallery is read once and written once, however many
+    // photos are in it.
+    const finished = await saveGalleryImages(payload, setUploadProgress);
 
     setSelectedImages([]);
     setGalleryCategory('#חתונה');
     setIsUploading(false);
+    // Leave the finished bar up a moment so the timing breakdown is readable.
+    setTimeout(() => setUploadProgress(null), 8000);
+    if (finished.length) setGalleryImages(finished);
     loadAllData();
   };
 
@@ -668,9 +730,16 @@ export default function DashboardPage() {
                 )}
 
                 {/* Action buttons */}
+                {eventProgress && <UploadProgressBar progress={eventProgress} />}
                 <View style={styles.formActions}>
-                  <Pressable style={styles.saveFormBtn} onPress={handleSaveEvent}>
-                    <Text style={styles.saveFormBtnText}>שמור שינויים</Text>
+                  <Pressable
+                    style={[styles.saveFormBtn, isSavingEvent && styles.uploadBtnDisabled]}
+                    onPress={handleSaveEvent}
+                    disabled={isSavingEvent}
+                  >
+                    <Text style={styles.saveFormBtnText}>
+                      {isSavingEvent ? `שומר... ${Math.round((eventProgress?.ratio ?? 0) * 100)}%` : 'שמור שינויים'}
+                    </Text>
                   </Pressable>
                   <Pressable style={styles.cancelFormBtn} onPress={() => setShowEventForm(false)}>
                     <Text style={styles.cancelFormBtnText}>ביטול</Text>
@@ -786,6 +855,8 @@ export default function DashboardPage() {
                 )}
               </View>
 
+              {uploadProgress && <UploadProgressBar progress={uploadProgress} />}
+
               <TouchableOpacity
                 style={[styles.uploadBtn, (selectedImages.length === 0 || isUploading) && styles.uploadBtnDisabled]}
                 onPress={handleUploadGallery}
@@ -793,7 +864,7 @@ export default function DashboardPage() {
               >
                 <Text style={styles.uploadBtnText}>
                   {isUploading
-                    ? 'מעלה קבצים...'
+                    ? `מעלה... ${Math.round((uploadProgress?.ratio ?? 0) * 100)}%`
                     : selectedImages.length > 1
                       ? `העלה ${selectedImages.length} תמונות לגלריה הציבורית`
                       : 'העלה לגלריה הציבורית'}
@@ -1509,6 +1580,52 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 8,
     marginBottom: 20,
+    textAlign: 'right',
+  },
+  progressWrap: {
+    width: '100%',
+    marginBottom: 12,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  progressPhase: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  progressPct: {
+    color: '#7FB0FF',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  progressTrack: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+    backgroundColor: '#0056DB',
+    ...(Platform.OS === 'web' ? { transition: 'width .25s ease' } as any : {}),
+  },
+  progressFillDone: {
+    backgroundColor: '#22C55E',
+  },
+  progressDetail: {
+    color: 'rgba(255,255,255,0.55)',
+    fontSize: 11,
+    marginTop: 6,
     textAlign: 'right',
   },
   uploadBtn: {

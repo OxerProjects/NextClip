@@ -93,6 +93,72 @@ const compressImageWeb = async (uri: string, maxDim = 1200, quality = 0.75): Pro
   });
 };
 
+/**
+ * Decodes the source once and encodes several sizes from it. Calling
+ * compressImageWeb per size re-decodes the original every time, which is the
+ * expensive half of the work for a big camera JPEG.
+ */
+const encodeVariantsWeb = async (
+  uri: string,
+  variants: { maxDim: number; quality: number }[],
+): Promise<string[]> => {
+  if (Platform.OS !== 'web') return variants.map(() => uri);
+
+  return new Promise<string[]>((resolve) => {
+    const img = new window.Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { resolve(variants.map(() => uri)); return; }
+
+        resolve(variants.map(({ maxDim, quality }) => {
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height / width) * maxDim);
+              width = maxDim;
+            } else {
+              width = Math.round((width / height) * maxDim);
+              height = maxDim;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          ctx.clearRect(0, 0, width, height);
+          ctx.drawImage(img, 0, 0, width, height);
+          return canvas.toDataURL('image/jpeg', quality);
+        }));
+      } catch (err) {
+        console.error('Failed resizing image on canvas', err);
+        resolve(variants.map(() => uri));
+      }
+    };
+    img.onerror = () => resolve(variants.map(() => uri));
+    img.src = uri;
+  });
+};
+
+/** Runs `fn` over `items`, keeping at most `limit` of them in flight. */
+const mapWithConcurrency = async <T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T, index: number) => Promise<R>,
+): Promise<R[]> => {
+  const out = new Array<R>(items.length);
+  let cursor = 0;
+  const worker = async () => {
+    while (cursor < items.length) {
+      const i = cursor++;
+      out[i] = await fn(items[i], i);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return out;
+};
+
 // --- PUBLIC GALLERY FUNCTIONS ---
 
 export const getGalleryImages = async (): Promise<GalleryImage[]> => {
@@ -123,52 +189,222 @@ export const getGalleryImages = async (): Promise<GalleryImage[]> => {
   }
 };
 
-export const saveGalleryImage = async (image: Omit<GalleryImage, 'id' | 'col' | 'row_y'>) => {
+/** How many photos are encoded + uploaded at the same time. */
+const UPLOAD_CONCURRENCY = 3;
+
+/**
+ * What an upload is doing right now, for the progress bar.
+ *
+ * `ratio` is 0..1 across the whole job and is driven by **bytes actually sent**
+ * during the upload phase, not by a photo counter — a counter sits still for
+ * seconds on a slow uplink and then jumps, which is what made uploads feel
+ * frozen even after they got faster.
+ */
+export type UploadProgress = {
+  phase: 'preparing' | 'uploading' | 'saving' | 'done';
+  /** Photos finished in the current phase. */
+  done: number;
+  total: number;
+  ratio: number;
+  sentBytes: number;
+  totalBytes: number;
+  elapsedMs: number;
+  /** Null until enough bytes have moved to estimate. */
+  etaMs: number | null;
+  /** Filled in on the final 'done' report — where the time actually went. */
+  timings?: { prepareMs: number; uploadMs: number; saveMs: number; totalMs: number; bytes: number };
+};
+
+/** Share of the bar given to each phase. Uploading dominates in practice. */
+const PHASE_WEIGHT = { preparing: 0.15, uploading: 0.8, saving: 0.05 };
+
+const dataUrlBytes = (dataUrl: string) => {
+  const comma = dataUrl.indexOf(',');
+  if (comma < 0) return dataUrl.length;
+  return Math.round((dataUrl.length - comma - 1) * 0.75); // base64 → bytes
+};
+
+/**
+ * POSTs one image and reports bytes as they leave the browser.
+ *
+ * fetch() cannot report upload progress at all, so this uses XHR — the only way
+ * to drive a progress bar off real transfer instead of a guess.
+ */
+const postImageWithProgress = (
+  apiUrl: string,
+  filename: string,
+  base64: string,
+  onBytes?: (sent: number, total: number) => void,
+): Promise<string | null> => new Promise((resolve) => {
   try {
-    const images = await getGalleryImages();
-
-    const stamp = Date.now();
-    let uploadedUri: string;
-    let uploadedFullUri: string | undefined;
-
-    if (Platform.OS === 'web') {
-      // Two encodes from the same original — never one from the other.
-      const gridUri = await compressImageWeb(image.uri, GRID_MAX_DIM, GRID_QUALITY);
-      const fullUri = await compressImageWeb(image.uri, FULL_MAX_DIM, FULL_QUALITY);
-      uploadedUri     = await uploadImageToVercelBlob(gridUri, `gallery_${stamp}.jpg`, true);
-      uploadedFullUri = await uploadImageToVercelBlob(fullUri, `gallery_${stamp}_full.jpg`, true);
-      if (uploadedFullUri === uploadedUri) uploadedFullUri = undefined;
-    } else {
-      uploadedUri = await uploadImageToVercelBlob(image.uri, `gallery_${stamp}.jpg`);
+    const body = JSON.stringify({ action: 'upload', filename, base64 });
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', apiUrl, true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    if (xhr.upload && onBytes) {
+      xhr.upload.onprogress = (e) => onBytes(e.loaded, e.lengthComputable ? e.total : body.length);
     }
+    xhr.onload = () => {
+      onBytes?.(body.length, body.length);
+      try {
+        const data = JSON.parse(xhr.responseText);
+        resolve(xhr.status >= 200 && xhr.status < 300 && data && data.url ? data.url : null);
+      } catch { resolve(null); }
+    };
+    xhr.onerror = () => resolve(null);
+    xhr.send(body);
+  } catch (e) {
+    console.error('Image upload failed:', e);
+    resolve(null);
+  }
+});
 
+/**
+ * Uploads a batch of gallery photos.
+ *
+ * Doing this one photo at a time meant, per photo: read the whole gallery from
+ * the API, upload, then write the whole gallery database back — so a batch of
+ * eight cost ~32 sequential round trips and eight full database rewrites. The
+ * batch is now read once, uploaded a few photos at a time, and written once.
+ */
+export const saveGalleryImages = async (
+  newImages: Omit<GalleryImage, 'id' | 'col' | 'row_y'>[],
+  onProgress?: (p: UploadProgress) => void,
+): Promise<GalleryImage[]> => {
+  try {
+    if (newImages.length === 0) return await getGalleryImages();
+
+    const images = await getGalleryImages();
+    const baseStamp = Date.now();
+    const t0 = Date.now();
+    const total = newImages.length;
+
+    // ── Phase 1: encode. CPU-bound and on the main thread, so it is reported
+    // separately — if this is the slow half, the fix is smaller images, not a
+    // faster connection.
+    let prepared = 0;
+    const report = (p: Partial<UploadProgress> & { phase: UploadProgress['phase'] }) =>
+      onProgress?.({
+        done: 0, total, ratio: 0, sentBytes: 0, totalBytes: 0,
+        elapsedMs: Date.now() - t0, etaMs: null, ...p,
+      });
+
+    report({ phase: 'preparing', done: 0 });
+
+    const variants = await mapWithConcurrency(newImages, UPLOAD_CONCURRENCY, async (image, i) => {
+      const stamp = baseStamp + i; // a batch shares a millisecond; ids must not
+      let parts: { filename: string; data: string; key: 'grid' | 'full' }[];
+
+      if (Platform.OS === 'web') {
+        // One decode of the original, two encodes from it.
+        const [gridData, fullData] = await encodeVariantsWeb(image.uri, [
+          { maxDim: GRID_MAX_DIM, quality: GRID_QUALITY },
+          { maxDim: FULL_MAX_DIM, quality: FULL_QUALITY },
+        ]);
+        parts = [
+          { filename: `gallery_${stamp}.jpg`, data: gridData, key: 'grid' },
+          { filename: `gallery_${stamp}_full.jpg`, data: fullData, key: 'full' },
+        ];
+      } else {
+        parts = [{ filename: `gallery_${stamp}.jpg`, data: image.uri, key: 'grid' }];
+      }
+
+      prepared++;
+      report({ phase: 'preparing', done: prepared, ratio: (prepared / total) * PHASE_WEIGHT.preparing });
+      return { image, stamp, parts };
+    });
+
+    const prepareMs = Date.now() - t0;
+
+    // ── Phase 2: upload. Now that every payload exists we know the exact byte
+    // total, so the bar can track real transfer instead of a photo counter.
+    const uploadStart = Date.now();
+    const jobs = variants.flatMap(v => v.parts.map(part => ({ ...part, stamp: v.stamp })));
+    const totalBytes = jobs.reduce((sum, j) => sum + dataUrlBytes(j.data), 0);
+    const sentPerJob = new Array(jobs.length).fill(0);
+    const partsPerPhoto = Math.max(1, jobs.length / total);
+    let uploadedJobs = 0;
+
+    const pushUploadProgress = () => {
+      const sentBytes = sentPerJob.reduce((a, b) => a + b, 0);
+      const frac = totalBytes > 0 ? Math.min(sentBytes / totalBytes, 1) : 1;
+      const spent = Date.now() - uploadStart;
+      report({
+        phase: 'uploading',
+        // jobs → photos, so the counter never reads "11/8"
+        done: Math.min(Math.floor(uploadedJobs / partsPerPhoto), total),
+        sentBytes,
+        totalBytes,
+        ratio: PHASE_WEIGHT.preparing + frac * PHASE_WEIGHT.uploading,
+        etaMs: frac > 0.02 && spent > 400 ? Math.round((spent / frac) * (1 - frac)) : null,
+      });
+    };
+    pushUploadProgress();
+
+    const urls = await mapWithConcurrency(jobs, UPLOAD_CONCURRENCY * 2, async (job, idx) => {
+      const url = await uploadImageToVercelBlob(job.data, job.filename, true, (sent, jobTotal) => {
+        // XHR reports the JSON body size; scale it onto the image's byte share.
+        const share = dataUrlBytes(job.data);
+        sentPerJob[idx] = jobTotal > 0 ? Math.min((sent / jobTotal) * share, share) : share;
+        pushUploadProgress();
+      });
+      sentPerJob[idx] = dataUrlBytes(job.data);
+      uploadedJobs++;
+      pushUploadProgress();
+      return url;
+    });
+
+    const uploadMs = Date.now() - uploadStart;
+
+    let cursor = 0;
+    const uploaded = variants.map(v => {
+      const mine = v.parts.map(() => urls[cursor++]);
+      const uri = mine[0];
+      const fullUri = mine[1] && mine[1] !== mine[0] ? mine[1] : undefined;
+      return { ...v.image, uri, fullUri, id: v.stamp.toString() };
+    });
+
+    report({ phase: 'saving', done: total, sentBytes: totalBytes, totalBytes, ratio: PHASE_WEIGHT.preparing + PHASE_WEIGHT.uploading });
+    const saveStart = Date.now();
+
+    // Masonry bookkeeping, carried forward across the whole batch.
     const colHeights = new Array(NUM_COLS).fill(0);
     images.forEach(img => {
       const bottom = img.row_y + img.height + GAP;
       if (bottom > colHeights[img.col]) colHeights[img.col] = bottom;
     });
 
-    let minCol = 0;
-    for (let c = 1; c < NUM_COLS; c++) {
-      if (colHeights[c] < colHeights[minCol]) minCol = c;
-    }
+    const added: GalleryImage[] = uploaded.map(item => {
+      let minCol = 0;
+      for (let c = 1; c < NUM_COLS; c++) {
+        if (colHeights[c] < colHeights[minCol]) minCol = c;
+      }
+      const row_y = colHeights[minCol];
+      colHeights[minCol] += item.height + GAP;
+      const { fullUri, ...rest } = item;
+      return { ...rest, ...(fullUri ? { fullUri } : {}), col: minCol, row_y };
+    });
 
-    const newImage: GalleryImage = {
-      ...image,
-      uri: uploadedUri,
-      ...(uploadedFullUri ? { fullUri: uploadedFullUri } : {}),
-      id: stamp.toString(),
-      col: minCol,
-      row_y: colHeights[minCol],
-    };
-    images.push(newImage);
-    
+    images.push(...added);
+
+    // One database write for the whole batch instead of one per photo.
     await fetchWithFallback('save_gallery', { data: images });
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(images));
-    return newImage;
+
+    const saveMs = Date.now() - saveStart;
+    const timings = { prepareMs, uploadMs, saveMs, totalMs: Date.now() - t0, bytes: totalBytes };
+    console.log('[gallery upload]', total, 'photos —', JSON.stringify(timings));
+    report({ phase: 'done', done: total, sentBytes: totalBytes, totalBytes, ratio: 1, timings });
+    return images;
   } catch (error) {
-    console.error('Failed to save image', error);
+    console.error('Failed to save images', error);
+    return [];
   }
+};
+
+export const saveGalleryImage = async (image: Omit<GalleryImage, 'id' | 'col' | 'row_y'>) => {
+  const images = await saveGalleryImages([image]);
+  return images[images.length - 1];
 };
 
 // --- CLOUD API DATABASE CONFIG & UTILS ---
@@ -216,6 +452,8 @@ const uploadImageToVercelBlob = async (
   filename: string,
   /** Caller already encoded the exact bytes it wants — don't re-encode them. */
   alreadyCompressed = false,
+  /** Called as bytes leave the browser, for progress reporting. */
+  onBytes?: (sent: number, total: number) => void,
 ): Promise<string> => {
   try {
     // 1. If it's already uploaded to the cloud CDN, keep it
@@ -245,6 +483,13 @@ const uploadImageToVercelBlob = async (
 
     const apiUrl = getApiUrl();
     if (!apiUrl) return activeUri;
+
+    // XHR when the caller wants byte-level progress, plain fetch otherwise.
+    if (onBytes && typeof XMLHttpRequest !== 'undefined') {
+      const url = await postImageWithProgress(apiUrl, filename, base64, onBytes);
+      if (url) return url;
+      return activeUri;
+    }
 
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -323,19 +568,78 @@ export const getClientEvents = async (): Promise<ClientEvent[]> => {
   }
 };
 
-export const saveClientEvent = async (event: Omit<ClientEvent, 'id' | 'createdAt'> & { id?: string }) => {
+export const saveClientEvent = async (
+  event: Omit<ClientEvent, 'id' | 'createdAt'> & { id?: string },
+  onProgress?: (p: UploadProgress) => void,
+) => {
   try {
-    // 1. Automatically upload any new base64/local image to Vercel Blob in background
-    const uploadedImages: string[] = [];
-    for (let i = 0; i < event.images.length; i++) {
-      const uri = event.images[i];
-      const uploadedUri = await uploadImageToVercelBlob(uri, `event_photo_${i + 1}.jpg`);
-      uploadedImages.push(uploadedUri);
-    }
+    const t0 = Date.now();
+    // Photos already living on the CDN cost nothing — only new ones are work.
+    const pending = event.images
+      .map((uri, i) => ({ uri, i }))
+      .filter(({ uri }) => !(uri.startsWith('http') && !uri.includes('localhost')));
+    const total = pending.length;
+
+    const report = (p: Partial<UploadProgress> & { phase: UploadProgress['phase'] }) =>
+      onProgress?.({
+        done: 0, total, ratio: 0, sentBytes: 0, totalBytes: 0,
+        elapsedMs: Date.now() - t0, etaMs: null, ...p,
+      });
+
+    // ── Phase 1: encode every new photo once, so the byte total is known.
+    report({ phase: 'preparing', done: 0 });
+    let prepared = 0;
+    const payloads = await mapWithConcurrency(pending, UPLOAD_CONCURRENCY, async ({ uri, i }) => {
+      const data = Platform.OS === 'web' ? await compressImageWeb(uri) : uri;
+      prepared++;
+      report({ phase: 'preparing', done: prepared, ratio: (prepared / Math.max(total, 1)) * PHASE_WEIGHT.preparing });
+      return { data, i };
+    });
+    const prepareMs = Date.now() - t0;
+
+    // ── Phase 2: upload them together instead of one at a time.
+    const uploadStart = Date.now();
+    const totalBytes = payloads.reduce((sum, p) => sum + dataUrlBytes(p.data), 0);
+    const sentPerJob = new Array(payloads.length).fill(0);
+    let uploadedCount = 0;
+    const pushUploadProgress = () => {
+      const sentBytes = sentPerJob.reduce((a: number, b: number) => a + b, 0);
+      const frac = totalBytes > 0 ? Math.min(sentBytes / totalBytes, 1) : 1;
+      const spent = Date.now() - uploadStart;
+      report({
+        phase: 'uploading', done: uploadedCount, sentBytes, totalBytes,
+        ratio: PHASE_WEIGHT.preparing + frac * PHASE_WEIGHT.uploading,
+        etaMs: frac > 0.02 && spent > 400 ? Math.round((spent / frac) * (1 - frac)) : null,
+      });
+    };
+    pushUploadProgress();
+
+    const uploadedImages = [...event.images];
+    await mapWithConcurrency(payloads, UPLOAD_CONCURRENCY * 2, async (job, idx) => {
+      const url = await uploadImageToVercelBlob(
+        job.data,
+        `event_photo_${job.i + 1}_${Date.now()}.jpg`,
+        true,
+        (sent, jobTotal) => {
+          const share = dataUrlBytes(job.data);
+          sentPerJob[idx] = jobTotal > 0 ? Math.min((sent / jobTotal) * share, share) : share;
+          pushUploadProgress();
+        },
+      );
+      uploadedImages[job.i] = url;
+      sentPerJob[idx] = dataUrlBytes(job.data);
+      uploadedCount++;
+      pushUploadProgress();
+    });
+    const uploadMs = Date.now() - uploadStart;
+
     const sanitizedEvent = {
       ...event,
       images: uploadedImages,
     };
+
+    report({ phase: 'saving', done: total, sentBytes: totalBytes, totalBytes, ratio: PHASE_WEIGHT.preparing + PHASE_WEIGHT.uploading });
+    const saveStart = Date.now();
 
     // 2. Fetch existing and merge
     const events = await getClientEvents();
@@ -363,8 +667,13 @@ export const saveClientEvent = async (event: Omit<ClientEvent, 'id' | 'createdAt
 
     // 4. Always back up to local storage
     await AsyncStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(updatedEvents));
+
+    const timings = { prepareMs, uploadMs, saveMs: Date.now() - saveStart, totalMs: Date.now() - t0, bytes: totalBytes };
+    console.log('[event save]', total, 'new photos —', JSON.stringify(timings));
+    report({ phase: 'done', done: total, sentBytes: totalBytes, totalBytes, ratio: 1, timings });
   } catch (error) {
     console.error('Failed to save client event', error);
+    onProgress?.({ phase: 'done', done: 0, total: 0, ratio: 1, sentBytes: 0, totalBytes: 0, elapsedMs: 0, etaMs: null });
   }
 };
 
