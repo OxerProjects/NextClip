@@ -33,16 +33,14 @@ export default function Root({ children }: PropsWithChildren) {
 
         {/*
           Google Search only shows a favicon next to the result when it can fetch a
-          SQUARE raster icon, so ship real .ico/.png icons — 48px multiples, as
-          Google recommends. They hold the NEXT CLIP logo on the brand navy (its
-          wordmark is white, so it needs the dark ground). No SVG icon here on
-          purpose: browsers prefer an SVG over every PNG, and icon.svg is the bare
-          aperture mark rather than the logo.
+          SQUARE raster icon (it ignores the SVG and rejects the non-square logo),
+          so ship real .ico/.png icons — 48px multiples, as Google recommends.
         */}
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
         <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png" />
         <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
+        <link rel="icon" type="image/svg+xml" href="/icon.svg" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
         {/* Font host handshake happens during HTML parse instead of after hydration */}
