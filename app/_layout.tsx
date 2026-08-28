@@ -124,16 +124,8 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
     document.head.appendChild(s);
   }
 
-  // ── Favicon ─────────────────────────────────────────────────────────────────
-  // Override any existing favicon (e.g. the one Expo injects from app.json)
-  let faviconLink = document.querySelector('link[rel="icon"]') as HTMLLinkElement | null;
-  if (!faviconLink) {
-    faviconLink = document.createElement('link');
-    document.head.appendChild(faviconLink);
-  }
-  faviconLink.rel = 'icon';
-  faviconLink.type = 'image/svg+xml';
-  faviconLink.href = '/icon.svg';
+  // Favicons are declared statically in app/+html.tsx — rewriting them here would
+  // strip the .ico/.png set that Google Search needs down to the SVG alone.
 
   // ── Loading overlay ──────────────────────────────────────────────────────────
   const injectLoader = () => {

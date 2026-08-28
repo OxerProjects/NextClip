@@ -626,7 +626,6 @@ export default function GalleryPage() {
       path="/gallery"
       title="גלריית תמונות מאירועים"
       description="גלריית תמונות מאירועים שליווינו: עמדות צילום AI, מגנטים מעוצבים וצילומי סטילס מחתונות, בר/בת מצווה ואירועי חברה. הציצו לתוצאות האמיתיות."
-      image="/emda/e1.jpeg"
       breadcrumb={[{ name: 'גלריה', path: '/gallery' }]}
     />
   );

@@ -31,12 +31,32 @@ export default function Root({ children }: PropsWithChildren) {
         {/* Let mobile browsers turn the phone number into a tap-to-call link */}
         <meta name="format-detection" content="telephone=yes" />
 
+        {/*
+          Google Search only shows a favicon next to the result when it can fetch a
+          SQUARE raster icon (it ignores the SVG and rejects the non-square logo),
+          so ship real .ico/.png icons — 48px multiples, as Google recommends.
+        */}
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
+        <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />
         <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-        <link rel="apple-touch-icon" href="/logo.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
         {/* Font host handshake happens during HTML parse instead of after hydration */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+
+        {/* ── Google tag (gtag.js) — Google Ads AW-18052171730 ───────────────── */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18052171730" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'AW-18052171730');`,
+          }}
+        />
 
         {/* ── Site-wide structured data ──────────────────────────────────── */}
         <script

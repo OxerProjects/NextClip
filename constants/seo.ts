@@ -9,8 +9,12 @@ export const SITE_URL = 'https://nextclipstudio.com';
 export const SITE_NAME = 'NextClip';
 export const SITE_LOCALE = 'he_IL';
 
-/** Fallback social-share image (keep under ~1MB so WhatsApp/Facebook fetch it fast). */
-export const DEFAULT_OG_IMAGE = '/hero_bg.png';
+/**
+ * Fallback social-share image (keep under ~1MB so WhatsApp/Facebook fetch it fast).
+ * 1200×630 landscape — Google and the social scrapers skip portrait images, and a
+ * mislabelled file (JPEG bytes served as .png) gets dropped too.
+ */
+export const DEFAULT_OG_IMAGE = '/og-image.jpg';
 
 export const BUSINESS = {
   name: 'NextClip',

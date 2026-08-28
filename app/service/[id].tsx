@@ -410,8 +410,8 @@ function WoodMarquee({ images, screenWidth, isMobile }: { images: string[]; scre
 
   return (
     <View style={{ width: '100%', backgroundColor: Colors.dark.background, paddingVertical: 28 }}>
-      {/* direction:ltr on container mirrors GalleryMarquee pattern — without it RTL
-          flips the overflow direction and breaks the translate3d(-50%) loop */}
+      {/* direction:ltr on the container — without it RTL flips the overflow
+          direction and breaks the translate3d(-50%) loop */}
       <div style={{ direction: 'ltr', overflow: 'hidden', width: '100%', userSelect: 'none' } as any}>
         <div className="wood-track">
           {doubled.map((uri, i) => (

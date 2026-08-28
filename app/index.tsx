@@ -5,7 +5,6 @@ import { HeroSection } from '@/components/home/HeroSection';
 import { ServicesSection } from '@/components/home/ServicesSection';
 import { Colors } from '@/constants/theme';
 import { TestimonialsSection } from '@/components/home/TestimonialsSection';
-import { GalleryMarquee } from '@/components/home/GalleryMarquee';
 import { ContactSection } from '@/components/home/ContactSection';
 import { Footer } from '@/components/Footer';
 import { Seo } from '@/components/Seo';
@@ -30,7 +29,6 @@ export default function HomeScreen() {
         path="/"
         title="עמדת צילום AI לאירועים, מגנטים וצילום סטילס | NextClip"
         description="עמדת צילום AI עם עשרות אפקטים, מגנטים באיכות פרימיום וצילום סטילס מקצועי לחתונות, בר/בת מצווה ואירועי חברה. הדפסה במקום, גלריה דיגיטלית ותמונות ללא הגבלה."
-        image="/emda/e1.jpeg"
       />
       <View style={styles.container}>
 
@@ -67,7 +65,6 @@ export default function HomeScreen() {
 
           <ServicesSection />
           <TestimonialsSection />
-          <GalleryMarquee />
           <ContactSection />
           <Footer />
         </View>
